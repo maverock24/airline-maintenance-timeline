@@ -1,0 +1,15 @@
+
+{
+  "name": "airline-maintenance-timeline-root",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "start:backend": "npm run start --workspace=backend",
+    "start:frontend": "npm run start --workspace=frontend",
+    "db:seed": "npm run db:seed --workspace=backend"
+  }
+}
