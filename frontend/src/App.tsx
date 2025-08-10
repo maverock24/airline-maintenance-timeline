@@ -230,12 +230,32 @@ const App: React.FC = () => {
     return { start, end };
   };
 
-  // Update timeline bounds when view mode changes
+  // Update timeline bounds when view mode changes; keep selected item centered across zoom levels
   useEffect(() => {
-    const bounds = getTimelineBounds(viewMode, timelineStart);
-    setTimelineStart(bounds.start);
-    setTimelineEnd(bounds.end);
-  }, [viewMode, timelineStart]);
+    const mode = viewMode;
+
+    if (selectedItem) {
+      const itemCenter = selectedItem.start_time.clone().add(selectedItem.end_time.diff(selectedItem.start_time) / 2);
+      let durationMs: number;
+      if (mode === 'day') {
+        durationMs = 24 * 60 * 60 * 1000;
+      } else if (mode === 'week') {
+        durationMs = 7 * 24 * 60 * 60 * 1000;
+      } else {
+        const startOfMonth = itemCenter.clone().startOf('month');
+        const endOfMonth = itemCenter.clone().endOf('month');
+        durationMs = endOfMonth.diff(startOfMonth);
+      }
+      const newStart = itemCenter.clone().subtract(durationMs / 2);
+      const newEnd = newStart.clone().add(durationMs);
+      setTimelineStart(newStart);
+      setTimelineEnd(newEnd);
+    } else {
+      const bounds = getTimelineBounds(mode, timelineStart);
+      setTimelineStart(bounds.start);
+      setTimelineEnd(bounds.end);
+    }
+  }, [viewMode, selectedItem, timelineStart]);
 
   // Auto-focus functionality - find next upcoming item
   const getNextUpcomingItem = useCallback(() => {
@@ -247,57 +267,142 @@ const App: React.FC = () => {
     return upcomingItems.length > 0 ? upcomingItems[0] : null;
   }, [items]);
 
-  // Navigate to next/previous item considering filters
+  // Navigate to next/previous item considering visible group and center selection
   const navigateToItem = (direction: 'prev' | 'next') => {
-    const sortedItems = items
+    // Helper: check if an item is within the current time window
+    const isInWindow = (it: TimelineItem) => it.end_time.isAfter(timelineStart) && it.start_time.isBefore(timelineEnd);
+
+    // Determine the currently visible group (aircraft)
+    let visibleGroupId: string | null = null;
+
+    // Prefer the selected item's group if it exists
+    if (selectedItem) {
+      visibleGroupId = selectedItem.group;
+    } else {
+      const container = document.querySelector('.timeline-container') as HTMLElement | null;
+      const rowEls = Array.from((container?.querySelectorAll('.st-row[data-group-id]') || []) as NodeListOf<HTMLElement>);
+      if (container && rowEls.length) {
+        const cRect = container.getBoundingClientRect();
+        const cMidY = (cRect.top + cRect.bottom) / 2;
+        let best: { id: string; delta: number } | null = null;
+        for (const el of rowEls) {
+          const r = el.getBoundingClientRect();
+          const rMid = (r.top + r.bottom) / 2;
+          const delta = Math.abs(rMid - cMidY);
+          const gid = el.dataset.groupId || el.getAttribute('data-group-id');
+          if (!gid) continue;
+          if (!best || delta < best.delta) best = { id: gid, delta };
+        }
+        if (best) visibleGroupId = best.id;
+      }
+      // Fallback to first filtered registration or first group
+      if (!visibleGroupId) {
+        if (filteredRegistrations.length > 0) visibleGroupId = filteredRegistrations[0];
+        else if (groups.length > 0) visibleGroupId = groups[0].id;
+      }
+    }
+
+    // Build the candidate list limited to the visible group
+    const inGroup = items
+      .filter(i => (visibleGroupId ? i.group === visibleGroupId : true))
       .slice()
       .sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
 
+    // If no items in the detected group, fallback to all items
+    const sortedItems = inGroup.length > 0 ? inGroup : items.slice().sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
     if (sortedItems.length === 0) return;
 
-    // Initialize current index if needed
-    if (navIndexRef.current < 0 || navIndexRef.current >= sortedItems.length) {
-      if (selectedItem) {
-        const idx = sortedItems.findIndex(i => i.id === selectedItem.id);
-        if (idx !== -1) {
-          navIndexRef.current = idx;
+    const currentDuration = timelineEnd.diff(timelineStart);
+    const currentCenter = timelineStart.clone().add(currentDuration / 2);
+
+    // Establish a base index and choose target taking the current window into account
+    const selectedIdxInGroup = selectedItem ? sortedItems.findIndex(i => i.id === selectedItem.id) : -1;
+    const selectedVisible = selectedItem ? isInWindow(selectedItem) : false;
+
+    let newIndex = -1;
+    if (direction === 'next') {
+      if (selectedIdxInGroup !== -1 && selectedVisible) {
+        newIndex = Math.min(sortedItems.length - 1, selectedIdxInGroup + 1);
+      } else {
+        // Prefer first item starting after the current window end
+        newIndex = sortedItems.findIndex(i => i.start_time.isAfter(timelineEnd));
+        if (newIndex === -1) {
+          // Then try first item after current center
+          newIndex = sortedItems.findIndex(i => i.start_time.isSameOrAfter(currentCenter));
+          if (newIndex === -1) newIndex = sortedItems.length - 1; // fallback to last
         }
       }
-      if (navIndexRef.current < 0 || navIndexRef.current >= sortedItems.length) {
-        // Fallback to closest to current view center
-        const currentCenter = timelineStart.clone().add(timelineEnd.diff(timelineStart) / 2);
-        let closestIndex = 0;
-        let closestDistance = Infinity;
-        sortedItems.forEach((it, i) => {
-          const d = Math.abs(it.start_time.diff(currentCenter));
-          if (d < closestDistance) {
-            closestDistance = d;
-            closestIndex = i;
+    } else {
+      if (selectedIdxInGroup !== -1 && selectedVisible) {
+        newIndex = Math.max(0, selectedIdxInGroup - 1);
+      } else {
+        // Prefer last item ending before current window start
+        newIndex = (() => {
+          for (let i = sortedItems.length - 1; i >= 0; i--) {
+            if (sortedItems[i].end_time.isBefore(timelineStart)) return i;
           }
-        });
-        navIndexRef.current = closestIndex;
+          return -1;
+        })();
+        if (newIndex === -1) {
+          // Then try last item before current center
+          newIndex = (() => {
+            for (let i = sortedItems.length - 1; i >= 0; i--) {
+              if (sortedItems[i].start_time.isBefore(currentCenter)) return i;
+            }
+            return -1;
+          })();
+          if (newIndex === -1) newIndex = 0; // fallback to first
+        }
       }
     }
 
-    let newIndex = navIndexRef.current;
-    if (direction === 'next') {
-      newIndex = (navIndexRef.current + 1) % sortedItems.length;
-    } else {
-      newIndex = (navIndexRef.current - 1 + sortedItems.length) % sortedItems.length;
-    }
-
-    navIndexRef.current = newIndex;
-    setCurrentNavigationIndex(newIndex);
-
     const targetItem = sortedItems[newIndex];
-    if (targetItem) {
-      // Zoom to day for clarity and center on the target item
-      setViewMode('day');
-      const bounds = getTimelineBounds('day', targetItem.start_time);
-      setTimelineStart(bounds.start);
-      setTimelineEnd(bounds.end);
-      setSelectedItem(targetItem);
-    }
+    if (!targetItem) return;
+
+    // Update nav index references using the index in the global sorted list for consistency
+    const globalSorted = items.slice().sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
+    const globalIdx = globalSorted.findIndex(i => i.id === targetItem.id);
+    navIndexRef.current = globalIdx;
+    setCurrentNavigationIndex(globalIdx);
+
+    // Keep the current zoom duration and center horizontally on the item's center
+    const itemCenter = targetItem.start_time.clone().add(targetItem.end_time.diff(targetItem.start_time) / 2);
+    const newStart = itemCenter.clone().subtract(currentDuration / 2);
+    const newEnd = newStart.clone().add(currentDuration);
+
+    setTimelineStart(newStart);
+    setTimelineEnd(newEnd);
+    setSelectedItem(targetItem);
+
+    // After render, center vertically on the item's row, accounting for sticky header height
+    const centerVertically = () => {
+      const container = document.querySelector('.timeline-container') as HTMLElement | null;
+      if (!container) return;
+      const row = document.querySelector(`.st-row[data-group-id="${targetItem.group}"]`) as HTMLElement | null;
+      if (!row) return;
+
+      const cRect = container.getBoundingClientRect();
+      const rRect = row.getBoundingClientRect();
+      const header = document.querySelector('.st-tick-header') as HTMLElement | null;
+      const stickyH = header ? header.clientHeight : 0;
+
+      const visibleTop = cRect.top + stickyH;
+      const visibleHeight = Math.max(1, cRect.height - stickyH);
+      const targetCenterY = visibleTop + visibleHeight / 2;
+      const elementCenterY = rRect.top + rRect.height / 2;
+      const delta = elementCenterY - targetCenterY;
+
+      if (Math.abs(delta) > 1) {
+        try {
+          container.scrollBy({ top: delta, behavior: 'smooth' });
+        } catch {
+          container.scrollTop += delta;
+        }
+      }
+    };
+
+    // Wait for React to commit and layout, then center (double RAF for reliability)
+    requestAnimationFrame(() => requestAnimationFrame(centerVertically));
   };
 
   // Auto-focus effect

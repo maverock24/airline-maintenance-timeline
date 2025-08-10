@@ -57,9 +57,26 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   const end = useMemo(() => moment(visibleTimeEnd), [visibleTimeEnd]);
   const totalMs = useMemo(() => Math.max(1, end.diff(start)), [start, end]);
 
+  const rootRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStateRef = useRef<{ x: number; startMs: number; endMs: number } | null>(null);
+
+  // Read parent timeline container padding-top so sticky headers can visually cover it
+  const [containerTopPad, setContainerTopPad] = useState<string>('0px');
+  useEffect(() => {
+    const updatePad = () => {
+      const el = rootRef.current;
+      if (!el) return;
+      const container = el.closest('.timeline-container') as HTMLElement | null;
+      if (!container) return;
+      const cs = getComputedStyle(container);
+      setContainerTopPad(cs.paddingTop || '0px');
+    };
+    updatePad();
+    window.addEventListener('resize', updatePad);
+    return () => window.removeEventListener('resize', updatePad);
+  }, []);
 
   // Responsive sidebar width
   const [viewportWidth, setViewportWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -351,7 +368,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   };
 
   return (
-    <div className="simple-timeline" onWheel={handleWheel}>
+    <div className="simple-timeline" onWheel={handleWheel} ref={rootRef} style={{ ['--tc-pad' as any]: containerTopPad }}>
       <div className="st-sidebar" style={{ width: actualSidebarWidth }}>
         <div className="st-sidebar-header">Aircraft</div>
         {/* remove spacer; one sticky row across both panes */}
@@ -438,13 +455,15 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         </div>
       </div>
       <style>{`
-        .simple-timeline { display: flex; width: 100%; border: 1px solid var(--border-primary); background: var(--bg-primary); color: var(--text-primary); user-select: none; --st-tick-height: 32px; overflow: visible; }
+        .simple-timeline { display: flex; width: 100%; border: 1px solid var(--border-primary); border-top: 0; background: var(--bg-primary); color: var(--text-primary); user-select: none; --st-tick-height: 32px; overflow: visible; }
         .st-sidebar { border-right: 1px solid var(--border-primary); background: var(--bg-secondary); position: sticky; left: 0; z-index: 2; }
-        .st-sidebar-header { position: sticky; top: 0; z-index: 3; height: var(--st-tick-height); padding: 0 12px; display: flex; align-items: center; border-bottom: 1px solid var(--border-primary); background: var(--bg-secondary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+        .st-sidebar-header { position: sticky; top: 0; left: 0; right: 0; z-index: 50; height: var(--st-tick-height); line-height: var(--st-tick-height); padding: 0 12px; display: flex; align-items: center; border-top: 1px solid var(--border-primary); border-bottom: 1px solid var(--border-primary); background: var(--bg-secondary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; transform: translateZ(0); }
+        .st-sidebar-header::before { content: ''; position: absolute; left: 0; right: 0; top: calc(-1 * var(--tc-pad, 0px)); height: var(--tc-pad, 0px); background: var(--bg-secondary); border-top: 1px solid var(--border-primary); pointer-events: none; }
         .st-sidebar-rows { border-top: 2px solid var(--border-primary); }
         .st-group { display: flex; align-items: center; padding: 0 12px; border-bottom: 2px solid var(--border-primary); box-sizing: border-box; }
         .st-content { flex: 1; position: relative; overflow: visible; }
-        .st-tick-header { position: sticky; top: 0; z-index: 3; height: var(--st-tick-height); background: var(--bg-secondary); border-bottom: 1px solid var(--border-primary); }
+        .st-tick-header { position: sticky; top: 0; left: 0; right: 0; z-index: 50; height: var(--st-tick-height); line-height: var(--st-tick-height); background: var(--bg-secondary); border-top: 1px solid var(--border-primary); border-bottom: 1px solid var(--border-primary); box-shadow: 0 1px 0 var(--border-primary); transform: translateZ(0); }
+        .st-tick-header::before { content: ''; position: absolute; left: 0; right: 0; top: calc(-1 * var(--tc-pad, 0px)); height: var(--tc-pad, 0px); background: var(--bg-secondary); border-top: 1px solid var(--border-primary); pointer-events: none; }
         .st-scroll { position: relative; overflow-x: auto; overflow-y: visible; }
         .st-tick { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; border-left: 1px solid var(--border-primary); }
         .st-tick-label { font-size: 11px; color: var(--text-secondary); }
