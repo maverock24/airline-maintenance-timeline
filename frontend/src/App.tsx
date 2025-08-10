@@ -1,7 +1,6 @@
-
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import moment from 'moment';
-import Timeline from 'react-calendar-timeline';
+import SimpleTimeline from './components/SimpleTimeline';
 import 'react-calendar-timeline/style.css';
 import './App.css';
 
@@ -49,7 +48,6 @@ const App: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<TimelineItem | null>(null);
   const [currentNavigationIndex, setCurrentNavigationIndex] = useState<number>(-1);
   const [filteredRegistrations, setFilteredRegistrations] = useState<string[]>([]);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [filteredStatuses, setFilteredStatuses] = useState<string[]>([]);
   const [registrationDropdownOpen, setRegistrationDropdownOpen] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
@@ -58,10 +56,10 @@ const App: React.FC = () => {
   const [timelineEnd, setTimelineEnd] = useState<moment.Moment>(moment().add(1, 'day').endOf('day'));
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [currentDateTime, setCurrentDateTime] = useState<moment.Moment>(moment());
-  const [selectedItemPosition, setSelectedItemPosition] = useState<{x: number, y: number} | null>(null);
   const [showFlights, setShowFlights] = useState<boolean>(true);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navIndexRef = useRef<number>(-1);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -174,6 +172,24 @@ const App: React.FC = () => {
     setGroups(newGroups.sort((a, b) => a.title.localeCompare(b.title)));
   }, [flights, workPackages, filteredRegistrations, filteredStatuses, showFlights]);
 
+  // When items or selection change, realign the navigation ref index
+  useEffect(() => {
+    if (!items || items.length === 0) {
+      navIndexRef.current = -1;
+      setCurrentNavigationIndex(-1);
+      return;
+    }
+    if (selectedItem) {
+      const sorted = items.slice().sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
+      const idx = sorted.findIndex(i => i.id === selectedItem.id);
+      navIndexRef.current = idx;
+      setCurrentNavigationIndex(idx);
+    } else if (currentNavigationIndex >= items.length) {
+      navIndexRef.current = -1;
+      setCurrentNavigationIndex(-1);
+    }
+  }, [items, selectedItem, currentNavigationIndex]);
+
   // Get unique registrations for filter
   const allRegistrations = useMemo(() => {
     const regs = new Set<string>();
@@ -191,22 +207,25 @@ const App: React.FC = () => {
 
   // Calculate timeline bounds based on view mode
   const getTimelineBounds = (mode: 'day' | 'week' | 'month', baseTime: moment.Moment = moment()) => {
-    const start = baseTime.clone();
-    let end = baseTime.clone();
+    let start = baseTime.clone();
+    let end: moment.Moment;
 
     switch (mode) {
-      case 'day':
-        start.startOf('day');
-        end.add(1, 'day').endOf('day');
+      case 'day': {
+        start = start.startOf('day');
+        end = start.clone().add(1, 'day');
         break;
-      case 'week':
-        start.startOf('week');
-        end.add(1, 'week').endOf('week');
+      }
+      case 'week': {
+        start = start.startOf('week');
+        end = start.clone().add(1, 'week');
         break;
-      case 'month':
-        start.startOf('month');
-        end.add(1, 'month').endOf('month');
+      }
+      case 'month': {
+        start = start.startOf('month');
+        end = start.clone().add(1, 'month');
         break;
+      }
     }
     return { start, end };
   };
@@ -216,87 +235,67 @@ const App: React.FC = () => {
     const bounds = getTimelineBounds(viewMode, timelineStart);
     setTimelineStart(bounds.start);
     setTimelineEnd(bounds.end);
-  }, [viewMode]);
+  }, [viewMode, timelineStart]);
 
   // Auto-focus functionality - find next upcoming item
-  const getNextUpcomingItem = () => {
+  const getNextUpcomingItem = useCallback(() => {
     const now = moment();
     const upcomingItems = items
       .filter(item => item.start_time.isAfter(now))
       .sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
     
     return upcomingItems.length > 0 ? upcomingItems[0] : null;
-  };
+  }, [items]);
 
   // Navigate to next/previous item considering filters
   const navigateToItem = (direction: 'prev' | 'next') => {
     const sortedItems = items
       .slice()
       .sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
-    
+
     if (sortedItems.length === 0) return;
 
-    let targetItem: TimelineItem | null = null;
-    let newIndex = -1;
-
-    // If we have a current navigation index, use it
-    if (currentNavigationIndex >= 0 && currentNavigationIndex < sortedItems.length) {
-      if (direction === 'next') {
-        newIndex = currentNavigationIndex + 1;
-        if (newIndex >= sortedItems.length) newIndex = 0; // Wrap to beginning
-      } else {
-        newIndex = currentNavigationIndex - 1;
-        if (newIndex < 0) newIndex = sortedItems.length - 1; // Wrap to end
-      }
-    } else {
-      // Initialize navigation index based on current timeline position or selected item
+    // Initialize current index if needed
+    if (navIndexRef.current < 0 || navIndexRef.current >= sortedItems.length) {
       if (selectedItem) {
-        const currentIndex = sortedItems.findIndex(item => 
-          item.id === selectedItem.id && 
-          item.group === selectedItem.group &&
-          item.title === selectedItem.title
-        );
-        if (currentIndex >= 0) {
-          if (direction === 'next') {
-            newIndex = currentIndex + 1 >= sortedItems.length ? 0 : currentIndex + 1;
-          } else {
-            newIndex = currentIndex - 1 < 0 ? sortedItems.length - 1 : currentIndex - 1;
-          }
+        const idx = sortedItems.findIndex(i => i.id === selectedItem.id);
+        if (idx !== -1) {
+          navIndexRef.current = idx;
         }
-      } else {
-        // Find the closest item to the current timeline center
+      }
+      if (navIndexRef.current < 0 || navIndexRef.current >= sortedItems.length) {
+        // Fallback to closest to current view center
         const currentCenter = timelineStart.clone().add(timelineEnd.diff(timelineStart) / 2);
-        let closestDistance = Infinity;
         let closestIndex = 0;
-        
-        sortedItems.forEach((item, index) => {
-          const distance = Math.abs(item.start_time.diff(currentCenter));
-          if (distance < closestDistance) {
-            closestDistance = distance;
-            closestIndex = index;
+        let closestDistance = Infinity;
+        sortedItems.forEach((it, i) => {
+          const d = Math.abs(it.start_time.diff(currentCenter));
+          if (d < closestDistance) {
+            closestDistance = d;
+            closestIndex = i;
           }
         });
-
-        if (direction === 'next') {
-          newIndex = closestIndex + 1 >= sortedItems.length ? 0 : closestIndex + 1;
-        } else {
-          newIndex = closestIndex - 1 < 0 ? sortedItems.length - 1 : closestIndex - 1;
-        }
+        navIndexRef.current = closestIndex;
       }
     }
 
-    targetItem = sortedItems[newIndex];
+    let newIndex = navIndexRef.current;
+    if (direction === 'next') {
+      newIndex = (navIndexRef.current + 1) % sortedItems.length;
+    } else {
+      newIndex = (navIndexRef.current - 1 + sortedItems.length) % sortedItems.length;
+    }
 
+    navIndexRef.current = newIndex;
+    setCurrentNavigationIndex(newIndex);
+
+    const targetItem = sortedItems[newIndex];
     if (targetItem) {
-      // Update navigation index
-      setCurrentNavigationIndex(newIndex);
-      
-      // Center timeline on the target item
-      const bounds = getTimelineBounds(viewMode, targetItem.start_time);
+      // Zoom to day for clarity and center on the target item
+      setViewMode('day');
+      const bounds = getTimelineBounds('day', targetItem.start_time);
       setTimelineStart(bounds.start);
       setTimelineEnd(bounds.end);
-      
-      // Select the item for better user feedback
       setSelectedItem(targetItem);
     }
   };
@@ -313,7 +312,7 @@ const App: React.FC = () => {
         setTimelineEnd(bounds.end);
       }
     }
-  }, [autoFocus, items, viewMode]);
+  }, [autoFocus, items, viewMode, getNextUpcomingItem]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -321,19 +320,25 @@ const App: React.FC = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setRegistrationDropdownOpen(false);
       }
-      
-      // Clear selected item when clicking outside timeline and selected item section
+
+      // Do not clear selection when using navigation controls
       const target = event.target as HTMLElement;
+      const navSection = document.querySelector('.view-navigation-section');
+      if (navSection && navSection.contains(target)) {
+        return;
+      }
+
+      // Clear selected item when clicking outside timeline and selected item section
       const timelineContainer = document.querySelector('.timeline-container');
       const selectedItemSection = document.querySelector('.selected-item-section');
-      
-      if (selectedItem && 
-          timelineContainer && 
-          selectedItemSection &&
-          !timelineContainer.contains(target) && 
-          !selectedItemSection.contains(target)) {
+      if (
+        selectedItem &&
+        timelineContainer &&
+        selectedItemSection &&
+        !timelineContainer.contains(target) &&
+        !selectedItemSection.contains(target)
+      ) {
         setSelectedItem(null);
-        setSelectedItemPosition(null);
       }
     };
 
@@ -428,6 +433,7 @@ const App: React.FC = () => {
     // Clear selected item and reset navigation state
     setSelectedItem(null);
     setCurrentNavigationIndex(-1);
+    navIndexRef.current = -1;
   };
 
   const toggleTheme = () => {
@@ -636,7 +642,6 @@ const App: React.FC = () => {
               <button 
                 onClick={() => {
                   setSelectedItem(null);
-                  setSelectedItemPosition(null);
                 }} 
                 className="close-selection-btn compact"
               >
@@ -791,11 +796,9 @@ const App: React.FC = () => {
 
       {!loading && !error && (
         <div className="timeline-container positioned-container">
-          <Timeline
+          <SimpleTimeline
             groups={groups}
             items={items}
-            defaultTimeStart={timelineStart.valueOf()}
-            defaultTimeEnd={timelineEnd.valueOf()}
             visibleTimeStart={timelineStart.valueOf()}
             visibleTimeEnd={timelineEnd.valueOf()}
             sidebarWidth={200}
@@ -805,20 +808,17 @@ const App: React.FC = () => {
             canSelect={true}
             stackItems
             lineHeight={70}
+            selectedItemId={selectedItem ? selectedItem.id : undefined}
             onItemSelect={(itemId, e, time) => {
               console.log('Item selected:', itemId);
               const item = items.find(i => i.id === itemId);
               if (item) {
                 setSelectedItem(item);
-                // Reset navigation index when manually selecting
-                setCurrentNavigationIndex(-1);
-                // Clear position since we're using a fixed section now
-                setSelectedItemPosition(null);
-                
-                // Automatically switch to day view for detailed view
+                const sorted = items.slice().sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
+                const idx = sorted.findIndex(i => i.id === item.id);
+                navIndexRef.current = idx;
+                setCurrentNavigationIndex(idx);
                 setViewMode('day');
-                
-                // Center timeline on the selected item's start time
                 const bounds = getTimelineBounds('day', item.start_time);
                 setTimelineStart(bounds.start);
                 setTimelineEnd(bounds.end);
@@ -826,11 +826,10 @@ const App: React.FC = () => {
             }}
             onItemDeselect={() => {
               setSelectedItem(null);
-              setSelectedItemPosition(null);
               setCurrentNavigationIndex(-1);
+              navIndexRef.current = -1;
             }}
             onTimeChange={(visibleTimeStart, visibleTimeEnd) => {
-              // Allow manual timeline dragging to update the view
               setTimelineStart(moment(visibleTimeStart));
               setTimelineEnd(moment(visibleTimeEnd));
             }}
