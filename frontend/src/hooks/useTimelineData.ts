@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Flight, TimelineItem, WorkPackage } from "../utils/types";
 import moment from "moment";
 import { getStatusColor, getStatusSymbol } from "../utils/helpers";
+import { API_ENDPOINTS } from '../utils/constants';
 
 const useTimelineData = ({ showFlights, filteredRegistrations, filteredStatuses }: {
   showFlights: boolean;
@@ -19,8 +20,8 @@ const useTimelineData = ({ showFlights, filteredRegistrations, filteredStatuses 
         setLoading(true);
         setError(null);
         const [flightsRes, wpRes] = await Promise.all([
-          fetch('/api/flights'),
-          fetch('/api/work-packages'),
+          fetch(API_ENDPOINTS.FLIGHTS),
+          fetch(API_ENDPOINTS.WORK_PACKAGES),
         ]);
 
         if (!flightsRes.ok) throw new Error(`Failed to fetch flights: ${flightsRes.status}`);

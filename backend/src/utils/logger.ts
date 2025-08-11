@@ -1,5 +1,6 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
+import { LOGGING_CONFIG, SERVER_CONFIG, SWAGGER_CONFIG } from './constants';
 import path from 'path';
 
 // Define log levels and colors
@@ -23,7 +24,7 @@ winston.addColors(logColors);
 
 // Define the custom format
 const customFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  winston.format.timestamp({ format: LOGGING_CONFIG.FILE_TIMESTAMP_FORMAT }),
   winston.format.errors({ stack: true }),
   winston.format.json(),
   winston.format.printf((info) => {
@@ -40,7 +41,7 @@ const customFormat = winston.format.combine(
 
 const consoleFormat = winston.format.combine(
   winston.format.colorize({ all: true }),
-  winston.format.timestamp({ format: 'HH:mm:ss' }),
+  winston.format.timestamp({ format: LOGGING_CONFIG.CONSOLE_TIMESTAMP_FORMAT }),
   winston.format.printf((info) => {
     const { timestamp, level, message, ...meta } = info;
     let logMessage = `${timestamp} [${level}]: ${message}`;
@@ -58,40 +59,40 @@ const logsDir = path.resolve(__dirname, '../../logs');
 
 // Create the logger
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || LOGGING_CONFIG.LEVELS.INFO,
   levels: logLevels,
   format: customFormat,
   defaultMeta: { 
     service: 'airline-maintenance-api',
-    version: '1.0.0'
+    version: SWAGGER_CONFIG.INFO.VERSION
   },
   transports: [
     // Error log file (only errors)
     new DailyRotateFile({
       filename: path.join(logsDir, 'error-%DATE%.log'),
-      datePattern: 'YYYY-MM-DD',
-      level: 'error',
-      maxSize: '20m',
-      maxFiles: '30d',
+      datePattern: LOGGING_CONFIG.ROTATION.DATE_PATTERN,
+      level: LOGGING_CONFIG.LEVELS.ERROR,
+      maxSize: LOGGING_CONFIG.ROTATION.MAX_SIZE,
+      maxFiles: LOGGING_CONFIG.ROTATION.MAX_FILES,
       zippedArchive: true,
     }),
     
     // Combined log file (all levels)
     new DailyRotateFile({
       filename: path.join(logsDir, 'combined-%DATE%.log'),
-      datePattern: 'YYYY-MM-DD',
-      maxSize: '20m',
-      maxFiles: '30d',
+      datePattern: LOGGING_CONFIG.ROTATION.DATE_PATTERN,
+      maxSize: LOGGING_CONFIG.ROTATION.MAX_SIZE,
+      maxFiles: LOGGING_CONFIG.ROTATION.MAX_FILES,
       zippedArchive: true,
     }),
     
     // HTTP requests log
     new DailyRotateFile({
       filename: path.join(logsDir, 'access-%DATE%.log'),
-      datePattern: 'YYYY-MM-DD',
-      level: 'http',
-      maxSize: '20m',
-      maxFiles: '30d',
+      datePattern: LOGGING_CONFIG.ROTATION.DATE_PATTERN,
+      level: LOGGING_CONFIG.LEVELS.HTTP,
+      maxSize: LOGGING_CONFIG.ROTATION.MAX_SIZE,
+      maxFiles: LOGGING_CONFIG.ROTATION.MAX_FILES,
       zippedArchive: true,
     }),
   ],

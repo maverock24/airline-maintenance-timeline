@@ -1,12 +1,13 @@
 import moment from "moment";
 import { useEffect, useState } from "react";
+import { TIME_CONSTANTS, DATE_FORMATS } from '../utils/constants';
 import './Header.css';
 
 const Header: React.FC<{ isDarkMode: boolean; toggleTheme: () => void; }> = ({ isDarkMode, toggleTheme }) => {
   const [currentDateTime, setCurrentDateTime] = useState(moment());
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentDateTime(moment()), 1000);
+    const timer = setInterval(() => setCurrentDateTime(moment()), TIME_CONSTANTS.CLOCK_UPDATE_INTERVAL);
     return () => clearInterval(timer);
   }, []);
 
@@ -19,8 +20,8 @@ const Header: React.FC<{ isDarkMode: boolean; toggleTheme: () => void; }> = ({ i
         </div>
         <div className="header-right">
           <div className="current-datetime">
-            <div className="date-display">{currentDateTime.format('dddd, MMMM DD, YYYY')}</div>
-            <div className="time-display">{currentDateTime.format('HH:mm:ss')}</div>
+            <div className="date-display">{currentDateTime.format(DATE_FORMATS.FULL_DATE)}</div>
+            <div className="time-display">{currentDateTime.format(DATE_FORMATS.TIME_24H)}</div>
           </div>
           <button onClick={toggleTheme} className="theme-toggle-btn" title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}>
             {isDarkMode ? '☀️' : '🌙'}

@@ -11,34 +11,42 @@ import {
   errorLoggingMiddleware,
   performanceMonitoringMiddleware
 } from './middleware/logging';
+import { 
+  SERVER_CONFIG, 
+  HTTP_STATUS, 
+  API_ROUTES,
+  ERROR_MESSAGES,
+  EXIT_CODES,
+  SWAGGER_CONFIG
+} from './utils/constants';
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || SERVER_CONFIG.DEFAULT_PORT;
 
 app.use(requestIdMiddleware);
 app.use(performanceMonitoringMiddleware);
 app.use(httpLoggingMiddleware);
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: SERVER_CONFIG.JSON_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: SERVER_CONFIG.URL_ENCODED_LIMIT }));
 
 app.use(requestResponseLoggingMiddleware);
 
 setupSwagger(app);
 
-app.use('/api', apiRoutes);
+app.use(API_ROUTES.BASE, apiRoutes);
 
 app.get('/', (req, res) => {
   loggers.api.request('GET', '/', req.ip || 'unknown');
   res.json({ 
-    message: 'Airline Maintenance Timeline API',
-    version: '1.0.0',
+    message: SWAGGER_CONFIG.INFO.DESCRIPTION,
+    version: SWAGGER_CONFIG.INFO.VERSION,
     endpoints: {
-      flights: '/api/flights',
-      workPackages: '/api/work-packages',
-      health: '/api/health',
-      docs: '/api-docs'
+      flights: API_ROUTES.FULL_PATHS.FLIGHTS,
+      workPackages: API_ROUTES.FULL_PATHS.WORK_PACKAGES,
+      health: API_ROUTES.FULL_PATHS.HEALTH,
+      docs: SWAGGER_CONFIG.DOCS_PATH
     },
     requestId: req.requestId
   });
@@ -47,18 +55,19 @@ app.get('/', (req, res) => {
 app.use(errorLoggingMiddleware);
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   loggers.app.error(err, 'Global error handler');
-  res.status(500).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
+  res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+    message: process.env.NODE_ENV === SERVER_CONFIG.ENVIRONMENTS.DEVELOPMENT ? 
+      err.message : ERROR_MESSAGES.SOMETHING_WENT_WRONG,
     requestId: req.requestId
   });
 });
 
 app.use((req, res) => {
   loggers.api.request(req.method, req.originalUrl, req.ip || 'unknown');
-  res.status(404).json({
-    error: 'Not Found',
-    message: `Route ${req.originalUrl} not found`,
+  res.status(HTTP_STATUS.NOT_FOUND).json({
+    error: ERROR_MESSAGES.NOT_FOUND,
+    message: ERROR_MESSAGES.ROUTE_NOT_FOUND(req.originalUrl),
     requestId: req.requestId
   });
 });
@@ -69,18 +78,18 @@ const server = app.listen(port, () => {
 
 server.on('error', (error: any) => {
   if (error.code === 'EADDRINUSE') {
-    loggers.app.error(error, `Port ${port} is already in use`);
-    process.exit(1);
+    loggers.app.error(error, ERROR_MESSAGES.PORT_IN_USE(Number(port)));
+    process.exit(EXIT_CODES.GENERAL_ERROR);
   } else {
-    loggers.app.error(error, 'Server startup error');
-    process.exit(1);
+    loggers.app.error(error, ERROR_MESSAGES.SERVER_STARTUP_ERROR);
+    process.exit(EXIT_CODES.GENERAL_ERROR);
   }
 });
 
 process.on('uncaughtException', (error) => {
   loggers.app.error(error, 'Uncaught Exception');
   server.close(() => {
-    process.exit(1);
+    process.exit(EXIT_CODES.GENERAL_ERROR);
   });
 });
 
@@ -91,7 +100,7 @@ process.on('unhandledRejection', (reason, promise) => {
     component: 'app'
   });
   server.close(() => {
-    process.exit(1);
+    process.exit(EXIT_CODES.GENERAL_ERROR);
   });
 });
 
@@ -99,13 +108,13 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('SIGTERM', () => {
   loggers.app.shutdown('SIGTERM received');
   server.close(() => {
-    process.exit(0);
+    process.exit(EXIT_CODES.SUCCESS);
   });
 });
 
 process.on('SIGINT', () => {
   loggers.app.shutdown('SIGINT received');
   server.close(() => {
-    process.exit(0);
+    process.exit(EXIT_CODES.SUCCESS);
   });
 });

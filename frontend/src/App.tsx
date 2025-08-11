@@ -8,6 +8,7 @@ import ControlsAndStats from './components/ControlsAndStats';
 import TimelineControls from './components/TimelineControls';
 import SelectedItemDisplay from './components/SelectedItemDisplay';
 import SimpleTimeline from './components/SimpleTimeline';
+import { TIME_CONSTANTS, DEFAULT_PROPS, CSS_CLASSES } from './utils/constants';
 import './App.css';
 
 const App: React.FC = () => {
@@ -102,7 +103,7 @@ const App: React.FC = () => {
 
     switch (viewMode) {
       case 'day':
-        const dayDuration = 24 * 60 * 60 * 1000;
+        const dayDuration = TIME_CONSTANTS.DAY_MS;
         newStart = centerPoint.clone().subtract(dayDuration / 2);
         newEnd = centerPoint.clone().add(dayDuration / 2);
         break;
@@ -246,7 +247,7 @@ const App: React.FC = () => {
   if (error) return <div className="error"><strong>❌ Error:</strong> {error}</div>;
 
   return (
-    <div className={`App ${isDarkMode ? 'dark-theme' : 'light-theme'}`}>
+    <div className={`App ${isDarkMode ? CSS_CLASSES.DARK_THEME : CSS_CLASSES.LIGHT_THEME}`}>
       <Header isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(p => !p)} />
       
       <ControlsAndStats
@@ -278,12 +279,12 @@ const App: React.FC = () => {
           items={items}
           visibleTimeStart={timelineStart.valueOf()}
           visibleTimeEnd={timelineEnd.valueOf()}
-          sidebarWidth={200}
-          itemHeightRatio={0.8}
+          sidebarWidth={DEFAULT_PROPS.TIMELINE.sidebarWidth}
+          itemHeightRatio={DEFAULT_PROPS.TIMELINE.itemHeightRatio}
           canMove={false}
           canResize={false}
           stackItems
-          lineHeight={70}
+          lineHeight={DEFAULT_PROPS.TIMELINE.lineHeight}
           selectedItemId={selectedItem?.id}
           highlightRanges={highlightedDate ? [{
             start: highlightedDate.clone().startOf('day').valueOf(),

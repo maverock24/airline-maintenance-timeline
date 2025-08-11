@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import morgan from 'morgan';
 import logger, { loggers, morganStream } from '../utils/logger';
+import { LOGGING_CONFIG, SERVER_CONFIG, API_ROUTES } from '../utils/constants';
 
 // Extend Express Request interface
 declare global {
@@ -32,7 +33,8 @@ export const httpLoggingMiddleware = morgan(detailedFormat, {
   stream: morganStream,
   skip: (req: Request, res: Response) => {
     // Skip logging for health checks in production
-    return process.env.NODE_ENV === 'production' && req.url === '/api/health';
+    return process.env.NODE_ENV === SERVER_CONFIG.ENVIRONMENTS.PRODUCTION && 
+           req.url === API_ROUTES.FULL_PATHS.HEALTH;
   }
 });
 
@@ -106,7 +108,7 @@ export const errorLoggingMiddleware = (
 ) => {
   loggers.api.error(req.method, req.originalUrl, err, res.statusCode);
   
-  if (process.env.LOG_LEVEL === 'debug') {
+  if (process.env.LOG_LEVEL === LOGGING_CONFIG.LEVELS.DEBUG) {
     logger.debug('Error context', {
       requestId: req.requestId,
       method: req.method,
@@ -137,7 +139,7 @@ export const performanceMonitoringMiddleware = (req: Request, res: Response, nex
     const duration = Number(endTime - startTime) / 1_000_000; // Convert to milliseconds
     
     // Log slow requests
-    if (duration > 1000) { // Log requests taking more than 1 second
+    if (duration > LOGGING_CONFIG.PERFORMANCE.SLOW_REQUEST_THRESHOLD) { // Log requests taking more than threshold
       logger.warn('Slow request detected', {
         requestId: req.requestId,
         method: req.method,

@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import Header from '../../components/Header';
+import { TIME_CONSTANTS } from '../../utils/constants';
 
 // Mock moment to control time
 jest.mock('moment', () => {
@@ -88,7 +89,7 @@ describe('Header Component', () => {
 
     const { unmount } = render(<Header isDarkMode={false} toggleTheme={mockToggleTheme} />);
 
-    expect(setInterval).toHaveBeenCalledWith(expect.any(Function), 1000);
+    expect(setInterval).toHaveBeenCalledWith(expect.any(Function), TIME_CONSTANTS.CLOCK_UPDATE_INTERVAL);
 
     unmount();
     expect(clearInterval).toHaveBeenCalled();

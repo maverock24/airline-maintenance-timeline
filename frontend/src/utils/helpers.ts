@@ -1,20 +1,22 @@
 // src/utils/helpers.ts
+import { STATUS_CONFIG } from './constants';
+
 export const getStatusSymbol = (status: string): string => {
   switch (status.toLowerCase()) {
-    case 'completed': return '✅';
-    case 'in progress': return '🔧';
-    case 'open': return '📋';
-    case 'cancelled': return '❌';
-    default: return '📝';
+    case STATUS_CONFIG.NAMES.COMPLETED: return STATUS_CONFIG.SYMBOLS.COMPLETED;
+    case STATUS_CONFIG.NAMES.IN_PROGRESS: return STATUS_CONFIG.SYMBOLS.IN_PROGRESS;
+    case STATUS_CONFIG.NAMES.OPEN: return STATUS_CONFIG.SYMBOLS.OPEN;
+    case STATUS_CONFIG.NAMES.CANCELLED: return STATUS_CONFIG.SYMBOLS.CANCELLED;
+    default: return STATUS_CONFIG.SYMBOLS.DEFAULT;
   }
 };
 
 export const getStatusColor = (status: string): string => {
   switch (status.toLowerCase()) {
-    case 'completed': return '#38a169'; // Muted green
-    case 'in progress': return '#d69e2e'; // Muted amber
-    case 'open': return '#3182ce'; // Muted blue
-    case 'cancelled': return '#e53e3e'; // Muted red
-    default: return '#718096'; // Muted gray
+    case STATUS_CONFIG.NAMES.COMPLETED: return STATUS_CONFIG.COLORS.COMPLETED;
+    case STATUS_CONFIG.NAMES.IN_PROGRESS: return STATUS_CONFIG.COLORS.IN_PROGRESS;
+    case STATUS_CONFIG.NAMES.OPEN: return STATUS_CONFIG.COLORS.OPEN;
+    case STATUS_CONFIG.NAMES.CANCELLED: return STATUS_CONFIG.COLORS.CANCELLED;
+    default: return STATUS_CONFIG.COLORS.DEFAULT;
   }
 };

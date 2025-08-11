@@ -2,15 +2,22 @@ import React, { useMemo, useRef, useState, useEffect } from 'react';
 import moment from 'moment';
 import './SimpleTimeline.css';
 import { SimpleTimelineItem, SimpleTimelineProps } from '../utils/types';
+import { 
+  TIMELINE_CONFIG, 
+  TIME_CONSTANTS,
+  INTERACTION_CONFIG, 
+  GRID_CONFIG,
+  DATE_FORMATS
+} from '../utils/constants';
 
 const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   groups,
   items,
   visibleTimeStart,
   visibleTimeEnd,
-  sidebarWidth = 200,
-  lineHeight = 70,
-  itemHeightRatio = 0.8,
+  sidebarWidth = TIMELINE_CONFIG.DEFAULT_SIDEBAR_WIDTH,
+  lineHeight = TIMELINE_CONFIG.DEFAULT_LINE_HEIGHT,
+  itemHeightRatio = TIMELINE_CONFIG.DEFAULT_ITEM_HEIGHT_RATIO,
   canSelect = true,
   stackItems = true,
   onItemSelect,
@@ -55,7 +62,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     // Set a timeout to allow auto-scroll again after 2 seconds of inactivity
     userInteractionTimeoutRef.current = setTimeout(() => {
       setUserInteracting(false);
-    }, 2000);
+    }, INTERACTION_CONFIG.USER_INTERACTION_TIMEOUT);
   };
 
   // Cleanup timeout on unmount
@@ -110,7 +117,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       }
     }
     ctx.font = font;
-    const horizontalPadding = 24; // .st-group padding: 0 12px
+    const horizontalPadding = TIMELINE_CONFIG.HORIZONTAL_PADDING;
 
     let maxW = ctx.measureText('Aircraft').width;
     for (const g of groups) {
@@ -119,8 +126,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     }
 
     const raw = Math.ceil(maxW + horizontalPadding);
-    const minW = 100;
-    const maxWCap = viewportWidth < 768 ? 180 : 340;
+    const minW = TIMELINE_CONFIG.MIN_SIDEBAR_WIDTH;
+    const maxWCap = viewportWidth < TIMELINE_CONFIG.MOBILE_BREAKPOINT ? TIMELINE_CONFIG.MOBILE_MAX_SIDEBAR_WIDTH : TIMELINE_CONFIG.DESKTOP_MAX_SIDEBAR_WIDTH;
     const next = Math.max(minW, Math.min(raw, maxWCap));
 
     // Defer to next frame to avoid layout thrash
@@ -204,7 +211,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       }
       byGroup[g.id] = placed;
       const laneCount = Math.max(1, placed.reduce((m, p) => Math.max(m, p.lane + 1), 1));
-      rowHeights[g.id] = Math.max(lineHeight, laneCount * (itemHeight + 4) + 4);
+      rowHeights[g.id] = Math.max(lineHeight, laneCount * (itemHeight + TIMELINE_CONFIG.ITEM_LANE_SPACING) + TIMELINE_CONFIG.ITEM_LANE_SPACING);
     }
 
     return { byGroup, rowHeights, itemHeight };
@@ -243,7 +250,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         targetTop += rowHeights[group.id] || lineHeight;
       }
 
-      const itemTopWithinGroup = 4 + targetItem.lane * (itemHeight + 4);
+      const itemTopWithinGroup = TIMELINE_CONFIG.ITEM_LANE_SPACING + targetItem.lane * (itemHeight + TIMELINE_CONFIG.ITEM_LANE_SPACING);
       const itemCenterY = targetTop + itemTopWithinGroup + itemHeight / 2;
 
       // Get the current scroll container dimensions
@@ -257,8 +264,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       const visibleTop = currentScrollTop;
       const visibleBottom = currentScrollTop + containerHeight;
       
-      // Add some padding for comfortable viewing (20% of container height)
-      const padding = containerHeight * 0.2;
+      // Add some padding for comfortable viewing
+      const padding = containerHeight * INTERACTION_CONFIG.COMFORTABLE_VIEWING_PADDING_RATIO;
       const comfortableTop = visibleTop + padding;
       const comfortableBottom = visibleBottom - padding;
       
@@ -280,7 +287,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
           });
         }
       }
-    }, 50); // 50ms delay to coordinate with horizontal scrolling
+    }, INTERACTION_CONFIG.SCROLL_COORDINATION_DELAY);
 
     return () => clearTimeout(scrollTimeout);
   }, [selectedItemId, byGroup, groups, rowHeights, lineHeight, itemHeight, userInteracting]);
@@ -313,7 +320,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   // Helpers
   const timeToPercent = (t: moment.Moment) => {
     const msFromStart = t.diff(start);
-    return Math.max(0, Math.min(100, (msFromStart / totalMs) * 100));
+    return Math.max(0, Math.min(TIMELINE_CONFIG.MAX_PERCENT, (msFromStart / totalMs) * TIMELINE_CONFIG.MAX_PERCENT));
   };
 
   const onMouseDownContent: React.MouseEventHandler<HTMLDivElement> = (e) => {
@@ -348,7 +355,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         const absY = Math.abs(dy);
         
         // Require minimum movement to determine direction
-        if (absX > 5 || absY > 5) {
+        if (absX > TIMELINE_CONFIG.DRAG_DIRECTION_THRESHOLD || absY > TIMELINE_CONFIG.DRAG_DIRECTION_THRESHOLD) {
           setDragDirection(absX > absY ? 'horizontal' : 'vertical');
         }
         return;
@@ -403,8 +410,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       const x = e.clientX - rect.left;
       const ratio = Math.max(0, Math.min(1, x / Math.max(1, rect.width)));
       const anchor = curStart + ratio * duration;
-      const zoomFactor = e.deltaY > 0 ? 1.2 : 0.8333; // zoom out / in
-      const newDuration = Math.max(60_000, Math.round(duration * zoomFactor));
+      const zoomFactor = e.deltaY > 0 ? INTERACTION_CONFIG.ZOOM_OUT_FACTOR : INTERACTION_CONFIG.ZOOM_IN_FACTOR;
+      const newDuration = Math.max(TIME_CONSTANTS.MIN_ZOOM_DURATION_MS, Math.round(duration * zoomFactor));
       const newStart = Math.round(anchor - ratio * newDuration);
       const newEnd = newStart + newDuration;
       onTimeChange(newStart, newEnd);
@@ -424,7 +431,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     markUserInteraction();
     
     const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY; // support trackpads
-    const shiftMs = Math.round(duration * (delta > 0 ? 0.1 : -0.1));
+    const shiftMs = Math.round(duration * (delta > 0 ? INTERACTION_CONFIG.PAN_SHIFT_RATIO : -INTERACTION_CONFIG.PAN_SHIFT_RATIO));
     onTimeChange(curStart + shiftMs, curEnd + shiftMs);
   };
 
@@ -434,8 +441,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     const duration = totalMs;
     
     // Simple step logic: hourly for short durations, daily for longer
-    const stepMs = duration <= 2 * 24 * 60 * 60 * 1000 ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
-    const isHourly = stepMs === 60 * 60 * 1000;
+    const stepMs = duration <= GRID_CONFIG.HOURLY_GRID_THRESHOLD ? GRID_CONFIG.HOURLY_STEP_MS : GRID_CONFIG.DAILY_STEP_MS;
+    const isHourly = stepMs === GRID_CONFIG.HOURLY_STEP_MS;
     
     // Start from the first aligned boundary
     const startMs = start.valueOf();
@@ -456,8 +463,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       const centerPercent = ((intervalCenter - startMs) / duration) * 100;
       
       const label = isHourly 
-        ? moment(ts).format('HH:00')
-        : moment(ts).format('ddd DD');
+        ? moment(ts).format(DATE_FORMATS.HOUR_MARKER)
+        : moment(ts).format(DATE_FORMATS.DAY_MARKER);
         
       markers.push({
         timestamp: ts,
@@ -495,9 +502,9 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         startY: (t1.clientY + t2.clientY) / 2,
         startMs: start.valueOf(),
         endMs: end.valueOf(),
-        width: Math.max(1, rect.width),
-        startDist: Math.max(1, dist),
-        anchorRatio: Math.max(0, Math.min(1, midX / Math.max(1, rect.width))),
+        width: Math.max(INTERACTION_CONFIG.MIN_PINCH_DISTANCE, rect.width),
+        startDist: Math.max(INTERACTION_CONFIG.MIN_PINCH_DISTANCE, dist),
+        anchorRatio: Math.max(0, Math.min(1, midX / Math.max(INTERACTION_CONFIG.MIN_PINCH_DISTANCE, rect.width))),
       };
       e.preventDefault();
     }
@@ -514,7 +521,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       // Pinch to zoom
       const t1 = e.touches[0];
       const t2 = e.touches[1];
-      const curDist = Math.max(1, Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY));
+      const curDist = Math.max(INTERACTION_CONFIG.MIN_PINCH_DISTANCE, Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY));
       const scale = curDist / state.startDist; // >1 fingers apart
       const newDuration = Math.max(60_000, Math.round(duration / scale));
       const anchor = curStart + state.anchorRatio * duration;
@@ -531,7 +538,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       const dy = t.clientY - state.startY;
       // Decide if we lock into horizontal pan; else let vertical scroll happen
       if (!state.lockedPan) {
-        if (Math.abs(dx) > Math.abs(dy) + 6) {
+        if (Math.abs(dx) > Math.abs(dy) + INTERACTION_CONFIG.TOUCH_LOCK_THRESHOLD) {
           state.lockedPan = true;
         } else {
           return; // let vertical scroll bubble
@@ -628,8 +635,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
                   {gi.map(item => {
                     const left = timeToPercent(item.start_time);
                     const right = timeToPercent(item.end_time);
-                    const width = Math.max(0.5, right - left);
-                    const top = 4 + item.lane * (itemHeight + 4);
+                    const width = Math.max(TIMELINE_CONFIG.MIN_ITEM_WIDTH_PERCENT, right - left);
+                    const top = TIMELINE_CONFIG.ITEM_LANE_SPACING + item.lane * (itemHeight + TIMELINE_CONFIG.ITEM_LANE_SPACING);
                     const isSelected = selectedItemId !== undefined && selectedItemId === item.id;
                     const isFlightItem = item.id.toString().startsWith('flight-');
                     return (

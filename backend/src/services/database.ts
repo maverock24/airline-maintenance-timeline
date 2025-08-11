@@ -1,14 +1,15 @@
 
 import sqlite3 from 'sqlite3';
 import { loggers } from '../utils/logger';
+import { DATABASE_CONFIG, EXIT_CODES } from '../utils/constants';
 
-const db = new sqlite3.Database('./airline.db', (err) => {
+const db = new sqlite3.Database(DATABASE_CONFIG.DATABASE_FILE, (err) => {
   if (err) {
     loggers.database.error('Database connection failed', err);
-    process.exit(1); // Exit the application if database connection fails
+    process.exit(EXIT_CODES.DATABASE_ERROR); // Exit the application if database connection fails
   }
   loggers.database.connection('connected', { 
-    database: './airline.db',
+    database: DATABASE_CONFIG.DATABASE_FILE,
     timestamp: new Date().toISOString()
   });
 });

@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import db from '../services/database';
 import { Flight, FlightQueryParams } from '../types/api';
 import { loggers } from '../utils/logger';
+import { HTTP_STATUS, ERROR_MESSAGES, REQUEST_CONFIG } from '../utils/constants';
 
 interface DatabaseFlight {
   id: number;
@@ -32,7 +33,7 @@ export const getFlights = (req: Request, res: Response) => {
         requestId: req.requestId,
         providedLimit: limit
       });
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: 'Bad Request',
         message: 'Limit parameter must be a positive number'
       });
@@ -44,7 +45,7 @@ export const getFlights = (req: Request, res: Response) => {
         providedRegistration: registration,
         type: typeof registration
       });
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: 'Bad Request',
         message: 'Registration parameter must be a string'
       });
@@ -79,7 +80,7 @@ export const getFlights = (req: Request, res: Response) => {
     db.all(query, params, (err, rows: DatabaseFlight[]) => {
       if (err) {
         console.error('Database error in getFlights:', err);
-        res.status(500).json({ 
+        res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ 
           error: 'Database Error',
           message: 'Failed to retrieve flights data'
         });
@@ -87,16 +88,16 @@ export const getFlights = (req: Request, res: Response) => {
       }
 
       if (!rows || rows.length === 0) {
-        res.status(200).json([]);
+        res.status(HTTP_STATUS.OK).json([]);
         return;
       }
 
-      res.status(200).json(rows);
+      res.status(HTTP_STATUS.OK).json(rows);
     });
   } catch (error) {
     console.error('Unexpected error in getFlights:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
       message: 'An unexpected error occurred while fetching flights'
     });
   }

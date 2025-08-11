@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import db from '../services/database';
 import { WorkPackage, WorkPackageQueryParams } from '../types/api';
+import { HTTP_STATUS, ERROR_MESSAGES } from '../utils/constants';
 
 interface DatabaseWorkPackage {
   id: number;
@@ -19,21 +20,21 @@ export const getWorkPackages = (req: Request, res: Response) => {
     const { registration, status, limit }: WorkPackageQueryParams = req.query;
     
     if (limit && (isNaN(Number(limit)) || Number(limit) < 0)) {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: 'Bad Request',
         message: 'Limit parameter must be a positive number'
       });
     }
 
     if (registration && typeof registration !== 'string') {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: 'Bad Request',
         message: 'Registration parameter must be a string'
       });
     }
 
     if (status && typeof status !== 'string') {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: 'Bad Request',
         message: 'Status parameter must be a string'
       });
@@ -78,7 +79,7 @@ export const getWorkPackages = (req: Request, res: Response) => {
     db.all(query, params, (err, rows: DatabaseWorkPackage[]) => {
       if (err) {
         console.error('Database error in getWorkPackages:', err);
-        res.status(500).json({ 
+        res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ 
           error: 'Database Error',
           message: 'Failed to retrieve work packages data'
         });
@@ -86,16 +87,16 @@ export const getWorkPackages = (req: Request, res: Response) => {
       }
 
       if (!rows || rows.length === 0) {
-        res.status(200).json([]);
+        res.status(HTTP_STATUS.OK).json([]);
         return;
       }
 
-      res.status(200).json(rows);
+      res.status(HTTP_STATUS.OK).json(rows);
     });
   } catch (error) {
     console.error('Unexpected error in getWorkPackages:', error);
-    res.status(500).json({
-      error: 'Internal Server Error',
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
       message: 'An unexpected error occurred while fetching work packages'
     });
   }

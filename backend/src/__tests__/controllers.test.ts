@@ -2,13 +2,14 @@ import request from 'supertest';
 import express from 'express';
 import cors from 'cors';
 import apiRoutes from '../routes';
+import { HTTP_STATUS, API_ROUTES } from '../utils/constants';
 
 // Create test app
 const createTestApp = () => {
   const app = express();
   app.use(cors());
   app.use(express.json());
-  app.use('/api', apiRoutes);
+  app.use(API_ROUTES.BASE, apiRoutes);
   return app;
 };
 
@@ -22,8 +23,8 @@ describe('Flight Controller', () => {
   describe('GET /api/flights', () => {
     it('should return flights with 200 status', async () => {
       const response = await request(app)
-        .get('/api/flights')
-        .expect(200);
+        .get(API_ROUTES.FULL_PATHS.FLIGHTS)
+        .expect(HTTP_STATUS.OK);
 
       expect(Array.isArray(response.body)).toBe(true);
       
@@ -41,8 +42,8 @@ describe('Flight Controller', () => {
 
     it('should return flights in ascending order of departure time', async () => {
       const response = await request(app)
-        .get('/api/flights')
-        .expect(200);
+        .get(API_ROUTES.FULL_PATHS.FLIGHTS)
+        .expect(HTTP_STATUS.OK);
 
       if (response.body.length > 1) {
         const flights = response.body;
