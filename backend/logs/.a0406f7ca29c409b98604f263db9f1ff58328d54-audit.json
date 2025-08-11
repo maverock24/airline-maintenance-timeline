@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 30
+    },
+    "auditLog": "/home/maverock24/gitrepos/airline-maintenance-timeline/backend/logs/.a0406f7ca29c409b98604f263db9f1ff58328d54-audit.json",
+    "files": [
+        {
+            "date": 1754950002419,
+            "name": "/home/maverock24/gitrepos/airline-maintenance-timeline/backend/logs/exceptions-2025-08-12.log",
+            "hash": "7fdee9174d15030d8fdcd8492d46b97beccc79b1021bedfdb72c8ed893e1e86c"
+        }
+    ],
+    "hashType": "sha256"
+}
