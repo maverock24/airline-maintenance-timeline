@@ -1,4 +1,3 @@
-
 {
   "name": "airline-maintenance-timeline-root",
   "version": "1.0.0",
@@ -10,6 +9,16 @@
   "scripts": {
     "start:backend": "npm run start --workspace=backend",
     "start:frontend": "npm run start --workspace=frontend",
+    "start": "concurrently --kill-others-on-fail \"npm run start:backend\" \"sleep 5 && npm run start:frontend\"",
+    "start:dev": "concurrently --kill-others-on-fail --prefix=\"[{name}]\" --names=\"backend,frontend\" \"npm run start:backend\" \"npm run start:frontend\"",
     "db:seed": "npm run db:seed --workspace=backend"
+  },
+  "overrides": {
+    "postcss": "^8.4.31",
+    "nth-check": "^2.0.1",
+    "webpack-dev-server": "^4.15.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
   }
 }

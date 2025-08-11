@@ -63,6 +63,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
   const rootRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const sidebarRowsRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const dragStateRef = useRef<{ x: number; startMs: number; endMs: number } | null>(null);
 
@@ -138,6 +140,34 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     startDist?: number;
     anchorRatio?: number; // 0..1 across content width
   } | null>(null);
+
+  // Scroll synchronization between sidebar and content
+  const isScrollingSidebar = useRef(false);
+  const isScrollingContent = useRef(false);
+
+  const handleSidebarScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isScrollingContent.current) return;
+    isScrollingSidebar.current = true;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+    // Reset flag after animation frame
+    requestAnimationFrame(() => {
+      isScrollingSidebar.current = false;
+    });
+  };
+
+  const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isScrollingSidebar.current) return;
+    isScrollingContent.current = true;
+    if (sidebarRowsRef.current) {
+      sidebarRowsRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+    // Reset flag after animation frame
+    requestAnimationFrame(() => {
+      isScrollingContent.current = false;
+    });
+  };
 
   // Derived: group -> items with stacking lanes
   type PlacedItem = SimpleTimelineItem & { lane: number };
@@ -411,7 +441,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       <div className="st-sidebar" style={{ width: computedSidebarWidth }}>
         <div className="st-sidebar-header">Aircraft</div>
         {/* remove spacer; one sticky row across both panes */}
-        <div className="st-sidebar-rows">
+        <div className="st-sidebar-rows" ref={sidebarRowsRef} onScroll={handleSidebarScroll}>
           {groups.map(g => (
             <div key={g.id} className="st-group" style={{ height: rowHeights[g.id] || lineHeight }}>
               {g.title}
@@ -441,7 +471,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
             );
           })}
         </div>
-        <div className="st-scroll">
+        <div className="st-scroll" ref={scrollRef} onScroll={handleContentScroll}>
           {/* Gentle vertical highlights for ranges (e.g., selected date) */}
           <div className="st-highlights">
             {highlightRanges.map((hr, idx) => {
@@ -476,10 +506,11 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
                     const width = Math.max(0.5, right - left);
                     const top = 4 + item.lane * (itemHeight + 4);
                     const isSelected = selectedItemId !== undefined && selectedItemId === item.id;
+                    const isFlightItem = item.id.toString().startsWith('flight-');
                     return (
                       <div
                         key={item.id}
-                        className={`st-item ${item.itemProps?.className || ''} ${isSelected ? 'selected' : ''}`}
+                        className={`st-item ${item.itemProps?.className || ''} ${isSelected ? 'selected' : ''} ${isFlightItem ? 'flight-item' : ''}`}
                         data-item-id={item.id}
                         style={{
                           left: `${left}%`,
@@ -487,9 +518,10 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
                           height: itemHeight,
                           top,
                           position: 'absolute',
-                          zIndex: isSelected ? 5 : 2,
+                          zIndex: isSelected ? 10 : 2,
                           ...(item.itemProps?.style || {}),
-                          boxShadow: isSelected ? '0 0 0 2px #e53e3e' : (item.itemProps?.style as any)?.boxShadow,
+                          // Don't override box-shadow for selected items - let CSS handle it
+                          ...(isSelected ? {} : { boxShadow: (item.itemProps?.style as any)?.boxShadow }),
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
