@@ -99,7 +99,8 @@
 .st-positioning-container {
   position: relative;
   width: 100%;
-  overflow: hidden; /* Match the scroll container behavior */
+  overflow: hidden;
+  /* Match the scroll container behavior */
 }
 
 .st-tick-header {
@@ -153,7 +154,8 @@
 .st-scroll {
   position: relative;
   flex: 1;
-  overflow-x: auto;
+  overflow-x: hidden;
+  /* Hide horizontal scrollbar and scrolling */
   overflow-y: auto;
   min-height: 0;
   /* Allow flex item to shrink */

@@ -180,22 +180,43 @@ const App: React.FC = () => {
         targetItem = sameAircraftItems[currentIndex + 1];
       } else if (direction === 'prev' && currentIndex > 0) {
         targetItem = sameAircraftItems[currentIndex - 1];
+      } else {
+        // No more items in the same aircraft, look for next/prev item in other filtered aircraft
+        const filteredItems = items
+          .filter(item => filteredRegistrations.length === 0 || filteredRegistrations.includes(item.group))
+          .sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
+        
+        const currentTime = selectedItem.start_time;
+        
+        if (direction === 'next') {
+          // Find next item after current selected item's time in filtered aircraft
+          targetItem = filteredItems.find(item => 
+            item.start_time.isAfter(currentTime) && item.id !== selectedItem.id
+          ) || null;
+        } else {
+          // Find previous item before current selected item's time in filtered aircraft
+          const pastItems = filteredItems.filter(item => 
+            item.start_time.isBefore(currentTime) && item.id !== selectedItem.id
+          );
+          targetItem = pastItems[pastItems.length - 1] || null;
+        }
       }
     } else {
-      // No item selected - use topmost aircraft and navigate by calendar date
-      const topAircraft = groups[0]?.id;
-      if (!topAircraft) return;
-
-      const now = moment();
-      const allItemsSorted = items
+      // No item selected - use current timeline view center and navigate within filtered aircraft
+      const filteredItems = items
+        .filter(item => filteredRegistrations.length === 0 || filteredRegistrations.includes(item.group))
         .sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
 
+      if (filteredItems.length === 0) return;
+
+      const currentViewCenter = timelineStart.clone().add(timelineEnd.diff(timelineStart) / 2);
+
       if (direction === 'next') {
-        // Find next item after current time
-        targetItem = allItemsSorted.find(item => item.start_time.isAfter(now)) || null;
+        // Find next item after current view center in filtered aircraft
+        targetItem = filteredItems.find(item => item.start_time.isAfter(currentViewCenter)) || null;
       } else {
-        // Find previous item before current time
-        const pastItems = allItemsSorted.filter(item => item.start_time.isBefore(now));
+        // Find previous item before current view center in filtered aircraft
+        const pastItems = filteredItems.filter(item => item.start_time.isBefore(currentViewCenter));
         targetItem = pastItems[pastItems.length - 1] || null;
       }
     }
@@ -203,7 +224,7 @@ const App: React.FC = () => {
     if (targetItem) {
       handleItemSelect(targetItem.id);
     }
-  }, [items, groups, selectedItem, handleItemSelect]);
+  }, [items, filteredRegistrations, selectedItem, timelineStart, timelineEnd, handleItemSelect]);
 
   // Clear status filters that are no longer available when aircraft selection changes
   useEffect(() => {
