@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import moment from 'moment';
+import './SimpleTimeline.css';
 
 export interface SimpleTimelineGroup {
   id: string;
@@ -34,6 +35,8 @@ interface SimpleTimelineProps {
   selectedItemId?: string | number;
   // New: view mode hint for tick labels
   viewMode?: 'day' | 'week' | 'month';
+  // New: highlight ranges for vertical shading (e.g., selected date)
+  highlightRanges?: Array<{ start: number; end: number; className?: string }>;
 }
 
 // Minimal, custom timeline compatible with used features of react-calendar-timeline
@@ -52,6 +55,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   onTimeChange,
   selectedItemId,
   viewMode,
+  highlightRanges = [],
 }) => {
   const start = useMemo(() => moment(visibleTimeStart), [visibleTimeStart]);
   const end = useMemo(() => moment(visibleTimeEnd), [visibleTimeEnd]);
@@ -78,14 +82,49 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     return () => window.removeEventListener('resize', updatePad);
   }, []);
 
-  // Responsive sidebar width
+  // Responsive + content-based sidebar width
   const [viewportWidth, setViewportWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-  const actualSidebarWidth = useMemo(() => (viewportWidth < 768 ? Math.min(120, sidebarWidth) : sidebarWidth), [viewportWidth, sidebarWidth]);
+
+  const [computedSidebarWidth, setComputedSidebarWidth] = useState<number>(sidebarWidth);
+  useEffect(() => {
+    // Measure longest group title width using canvas with computed font
+    const el = rootRef.current;
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) {
+      setComputedSidebarWidth(sidebarWidth);
+      return;
+    }
+    let font = '14px system-ui';
+    if (el) {
+      const probe = el.querySelector('.st-group') as HTMLElement | null;
+      if (probe) {
+        const cs = getComputedStyle(probe);
+        // canvas font syntax: style variant weight size family
+        font = `${cs.fontStyle || ''} ${cs.fontVariant || ''} ${cs.fontWeight || ''} ${cs.fontSize || '14px'} ${cs.fontFamily || 'system-ui'}`.trim();
+      }
+    }
+    ctx.font = font;
+    const horizontalPadding = 24; // .st-group padding: 0 12px
+
+    let maxW = ctx.measureText('Aircraft').width;
+    for (const g of groups) {
+      const w = ctx.measureText(g.title).width;
+      if (w > maxW) maxW = w;
+    }
+
+    const raw = Math.ceil(maxW + horizontalPadding);
+    const minW = 100;
+    const maxWCap = viewportWidth < 768 ? 180 : 340;
+    const next = Math.max(minW, Math.min(raw, maxWCap));
+
+    // Defer to next frame to avoid layout thrash
+    requestAnimationFrame(() => setComputedSidebarWidth(next));
+  }, [groups, viewportWidth, sidebarWidth]);
 
   // Touch state for mobile pan/pinch
   const touchStateRef = useRef<{
@@ -369,7 +408,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
   return (
     <div className="simple-timeline" onWheel={handleWheel} ref={rootRef} style={{ ['--tc-pad' as any]: containerTopPad }}>
-      <div className="st-sidebar" style={{ width: actualSidebarWidth }}>
+      <div className="st-sidebar" style={{ width: computedSidebarWidth }}>
         <div className="st-sidebar-header">Aircraft</div>
         {/* remove spacer; one sticky row across both panes */}
         <div className="st-sidebar-rows">
@@ -403,6 +442,22 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
           })}
         </div>
         <div className="st-scroll">
+          {/* Gentle vertical highlights for ranges (e.g., selected date) */}
+          <div className="st-highlights">
+            {highlightRanges.map((hr, idx) => {
+              const l = timeToPercent(moment(hr.start));
+              const r = timeToPercent(moment(hr.end));
+              const w = Math.max(0, r - l);
+              if (w <= 0) return null;
+              return (
+                <div
+                  key={`${hr.start}-${hr.end}-${idx}`}
+                  className={`st-highlight-range ${hr.className || ''}`}
+                  style={{ left: `${l}%`, width: `${w}%` }}
+                />
+              );
+            })}
+          </div>
           <div className="st-grid">
             {grid.minors.map((ts) => {
               const p = timeToPercent(moment(ts));
@@ -454,31 +509,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
           </div>
         </div>
       </div>
-      <style>{`
-        .simple-timeline { display: flex; width: 100%; border: 1px solid var(--border-primary); border-top: 0; background: var(--bg-primary); color: var(--text-primary); user-select: none; --st-tick-height: 32px; overflow: visible; }
-        .st-sidebar { border-right: 1px solid var(--border-primary); background: var(--bg-secondary); position: sticky; left: 0; z-index: 2; }
-        .st-sidebar-header { position: sticky; top: 0; left: 0; right: 0; z-index: 50; height: var(--st-tick-height); line-height: var(--st-tick-height); padding: 0 12px; display: flex; align-items: center; border-top: 1px solid var(--border-primary); border-bottom: 1px solid var(--border-primary); background: var(--bg-secondary); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; transform: translateZ(0); }
-        .st-sidebar-header::before { content: ''; position: absolute; left: 0; right: 0; top: calc(-1 * var(--tc-pad, 0px)); height: var(--tc-pad, 0px); background: var(--bg-secondary); border-top: 1px solid var(--border-primary); pointer-events: none; }
-        .st-sidebar-rows { border-top: 2px solid var(--border-primary); }
-        .st-group { display: flex; align-items: center; padding: 0 12px; border-bottom: 2px solid var(--border-primary); box-sizing: border-box; }
-        .st-content { flex: 1; position: relative; overflow: visible; }
-        .st-tick-header { position: sticky; top: 0; left: 0; right: 0; z-index: 50; height: var(--st-tick-height); line-height: var(--st-tick-height); background: var(--bg-secondary); border-top: 1px solid var(--border-primary); border-bottom: 1px solid var(--border-primary); box-shadow: 0 1px 0 var(--border-primary); transform: translateZ(0); }
-        .st-tick-header::before { content: ''; position: absolute; left: 0; right: 0; top: calc(-1 * var(--tc-pad, 0px)); height: var(--tc-pad, 0px); background: var(--bg-secondary); border-top: 1px solid var(--border-primary); pointer-events: none; }
-        .st-scroll { position: relative; overflow-x: auto; overflow-y: visible; }
-        .st-tick { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; border-left: 1px solid var(--border-primary); }
-        .st-tick-label { font-size: 11px; color: var(--text-secondary); }
-        .st-grid { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1; }
-        .st-grid-line { position: absolute; top: 0; bottom: 0; width: 0.5px; background: var(--border-primary); opacity: 0.35; }
-        .st-rows { position: relative; z-index: 2; border-top: 2px solid var(--border-primary); }
-        .st-row { position: relative; border-bottom: 2px solid var(--border-primary); box-sizing: border-box; }
-        .st-item { border-radius: 4px; overflow: hidden; cursor: pointer; padding: 6px 8px; box-sizing: border-box; }
-        .st-item.selected { box-shadow: 0 0 0 2px #e53e3e; }
-        .st-item-title { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        @media (max-width: 768px) {
-          .st-group { font-size: 12px; padding: 0 8px; }
-          .st-item-title { font-size: 11px; }
-        }
-      `}</style>
     </div>
   );
 };

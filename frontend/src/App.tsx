@@ -51,12 +51,14 @@ const App: React.FC = () => {
   const [filteredStatuses, setFilteredStatuses] = useState<string[]>([]);
   const [registrationDropdownOpen, setRegistrationDropdownOpen] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day');
-  const [autoFocus, setAutoFocus] = useState<boolean>(false);
   const [timelineStart, setTimelineStart] = useState<moment.Moment>(moment().startOf('day'));
   const [timelineEnd, setTimelineEnd] = useState<moment.Moment>(moment().add(1, 'day').endOf('day'));
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [currentDateTime, setCurrentDateTime] = useState<moment.Moment>(moment());
   const [showFlights, setShowFlights] = useState<boolean>(true);
+  
+  // New: highlighted date range (start of selected day)
+  const [highlightedDate, setHighlightedDate] = useState<moment.Moment | null>(null);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navIndexRef = useRef<number>(-1);
@@ -272,34 +274,12 @@ const App: React.FC = () => {
     // Helper: check if an item is within the current time window
     const isInWindow = (it: TimelineItem) => it.end_time.isAfter(timelineStart) && it.start_time.isBefore(timelineEnd);
 
-    // Determine the currently visible group (aircraft)
+    // Determine target group (lane): if a selection exists, stay in that lane; otherwise pick the top lane (first group)
     let visibleGroupId: string | null = null;
-
-    // Prefer the selected item's group if it exists
     if (selectedItem) {
       visibleGroupId = selectedItem.group;
-    } else {
-      const container = document.querySelector('.timeline-container') as HTMLElement | null;
-      const rowEls = Array.from((container?.querySelectorAll('.st-row[data-group-id]') || []) as NodeListOf<HTMLElement>);
-      if (container && rowEls.length) {
-        const cRect = container.getBoundingClientRect();
-        const cMidY = (cRect.top + cRect.bottom) / 2;
-        let best: { id: string; delta: number } | null = null;
-        for (const el of rowEls) {
-          const r = el.getBoundingClientRect();
-          const rMid = (r.top + r.bottom) / 2;
-          const delta = Math.abs(rMid - cMidY);
-          const gid = el.dataset.groupId || el.getAttribute('data-group-id');
-          if (!gid) continue;
-          if (!best || delta < best.delta) best = { id: gid, delta };
-        }
-        if (best) visibleGroupId = best.id;
-      }
-      // Fallback to first filtered registration or first group
-      if (!visibleGroupId) {
-        if (filteredRegistrations.length > 0) visibleGroupId = filteredRegistrations[0];
-        else if (groups.length > 0) visibleGroupId = groups[0].id;
-      }
+    } else if (groups.length > 0) {
+      visibleGroupId = groups[0].id;
     }
 
     // Build the candidate list limited to the visible group
@@ -308,60 +288,51 @@ const App: React.FC = () => {
       .slice()
       .sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
 
-    // If no items in the detected group, fallback to all items
-    const sortedItems = inGroup.length > 0 ? inGroup : items.slice().sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
+    // If no items in that lane, do nothing
+    const sortedItems = inGroup;
     if (sortedItems.length === 0) return;
 
     const currentDuration = timelineEnd.diff(timelineStart);
     const currentCenter = timelineStart.clone().add(currentDuration / 2);
+    // const now = moment(); // no longer needed for lane-scoped stepping
 
     // Establish a base index and choose target taking the current window into account
     const selectedIdxInGroup = selectedItem ? sortedItems.findIndex(i => i.id === selectedItem.id) : -1;
     const selectedVisible = selectedItem ? isInWindow(selectedItem) : false;
 
-    let newIndex = -1;
+    let targetItem: TimelineItem | undefined;
+
     if (direction === 'next') {
+      // Step to the next item within the same lane
       if (selectedIdxInGroup !== -1 && selectedVisible) {
-        newIndex = Math.min(sortedItems.length - 1, selectedIdxInGroup + 1);
+        targetItem = sortedItems[Math.min(sortedItems.length - 1, selectedIdxInGroup + 1)];
       } else {
-        // Prefer first item starting after the current window end
-        newIndex = sortedItems.findIndex(i => i.start_time.isAfter(timelineEnd));
-        if (newIndex === -1) {
-          // Then try first item after current center
-          newIndex = sortedItems.findIndex(i => i.start_time.isSameOrAfter(currentCenter));
-          if (newIndex === -1) newIndex = sortedItems.length - 1; // fallback to last
-        }
+        // Choose the first item starting at/after the current center; if none, pick the last in lane
+        targetItem = sortedItems.find(i => i.start_time.isSameOrAfter(currentCenter)) || sortedItems[sortedItems.length - 1];
       }
     } else {
+      // Previous: step to the previous item within the same lane
       if (selectedIdxInGroup !== -1 && selectedVisible) {
-        newIndex = Math.max(0, selectedIdxInGroup - 1);
+        targetItem = sortedItems[Math.max(0, selectedIdxInGroup - 1)];
       } else {
-        // Prefer last item ending before current window start
-        newIndex = (() => {
+        // Prefer last item ending before current window start, else last before center, else first
+        for (let i = sortedItems.length - 1; i >= 0; i--) {
+          if (sortedItems[i].end_time.isBefore(timelineStart)) { targetItem = sortedItems[i]; break; }
+        }
+        if (!targetItem) {
           for (let i = sortedItems.length - 1; i >= 0; i--) {
-            if (sortedItems[i].end_time.isBefore(timelineStart)) return i;
+            if (sortedItems[i].start_time.isBefore(currentCenter)) { targetItem = sortedItems[i]; break; }
           }
-          return -1;
-        })();
-        if (newIndex === -1) {
-          // Then try last item before current center
-          newIndex = (() => {
-            for (let i = sortedItems.length - 1; i >= 0; i--) {
-              if (sortedItems[i].start_time.isBefore(currentCenter)) return i;
-            }
-            return -1;
-          })();
-          if (newIndex === -1) newIndex = 0; // fallback to first
+          if (!targetItem) targetItem = sortedItems[0];
         }
       }
     }
 
-    const targetItem = sortedItems[newIndex];
     if (!targetItem) return;
 
     // Update nav index references using the index in the global sorted list for consistency
     const globalSorted = items.slice().sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
-    const globalIdx = globalSorted.findIndex(i => i.id === targetItem.id);
+    const globalIdx = globalSorted.findIndex(i => i.id === targetItem!.id);
     navIndexRef.current = globalIdx;
     setCurrentNavigationIndex(globalIdx);
 
@@ -373,12 +344,14 @@ const App: React.FC = () => {
     setTimelineStart(newStart);
     setTimelineEnd(newEnd);
     setSelectedItem(targetItem);
+    // Sync calendar date to selected item's day
+    setHighlightedDate(targetItem.start_time.clone().startOf('day'));
 
     // After render, center vertically on the item's row, accounting for sticky header height
     const centerVertically = () => {
       const container = document.querySelector('.timeline-container') as HTMLElement | null;
       if (!container) return;
-      const row = document.querySelector(`.st-row[data-group-id="${targetItem.group}"]`) as HTMLElement | null;
+      const row = document.querySelector(`.st-row[data-group-id="${targetItem!.group}"]`) as HTMLElement | null;
       if (!row) return;
 
       const cRect = container.getBoundingClientRect();
@@ -404,20 +377,6 @@ const App: React.FC = () => {
     // Wait for React to commit and layout, then center (double RAF for reliability)
     requestAnimationFrame(() => requestAnimationFrame(centerVertically));
   };
-
-  // Auto-focus effect
-  useEffect(() => {
-    if (autoFocus && items.length > 0) {
-      const nextItem = getNextUpcomingItem();
-      if (nextItem) {
-        // Center timeline on the next item
-        const itemTime = nextItem.start_time;
-        const bounds = getTimelineBounds(viewMode, itemTime);
-        setTimelineStart(bounds.start);
-        setTimelineEnd(bounds.end);
-      }
-    }
-  }, [autoFocus, items, viewMode, getNextUpcomingItem]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -530,15 +489,29 @@ const App: React.FC = () => {
     navigateToItem(direction);
   };
 
-  const goToToday = () => {
-    const bounds = getTimelineBounds(viewMode, moment());
-    setTimelineStart(bounds.start);
-    setTimelineEnd(bounds.end);
-    
-    // Clear selected item and reset navigation state
+  // Unified helper: jump timeline to a given date's week, clear selection, and highlight the day
+  const jumpToDate = (d: moment.Moment) => {
+    // Deselect any selected item and reset navigation
     setSelectedItem(null);
     setCurrentNavigationIndex(-1);
     navIndexRef.current = -1;
+    // Remember highlighted day and jump to that week
+    const dayStart = d.clone().startOf('day');
+    setHighlightedDate(dayStart);
+    setViewMode('week');
+    const bounds = getTimelineBounds('week', d);
+    setTimelineStart(bounds.start);
+    setTimelineEnd(bounds.end);
+  };
+
+  const goToToday = () => {
+    // Force a jump to today regardless of previous selection
+    const today = moment();
+    setViewMode('week');
+    // Defer timeline updates to next tick to avoid conflicts with selection/zoom effects
+    requestAnimationFrame(() => {
+      jumpToDate(today);
+    });
   };
 
   const toggleTheme = () => {
@@ -608,16 +581,18 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="sub-control">
-              <div className="current-view-info">
-                <span className="view-range">
-                  {timelineStart.format('MMM DD, YYYY')} - {timelineEnd.format('MMM DD, YYYY')}
-                </span>
-                <span className="view-duration">
-                  ({viewMode === 'day' ? '24 hours' : 
-                     viewMode === 'week' ? '7 days' : 
-                     '1 month'} view)
-                </span>
-              </div>
+              <label htmlFor="view-date">Date:</label>
+              <input
+                id="view-date"
+                type="date"
+                value={(highlightedDate || timelineStart).format('YYYY-MM-DD')}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const d = moment(val, 'YYYY-MM-DD');
+                  if (!d.isValid()) return;
+                  jumpToDate(d);
+                }}
+              />
             </div>
           </div>
         </div>
@@ -626,28 +601,50 @@ const App: React.FC = () => {
         <div className="control-section filters-section">
           <h3>🔍 Filters</h3>
           <div className="control-group">
-            <div className="status-symbols">
+            <div className="filter-tiles">
+              {/* Flights tile */}
+              <button
+                type="button"
+                className={`filter-tile flight ${showFlights ? 'active' : 'inactive'}`}
+                onClick={() => setShowFlights(prev => !prev)}
+                style={{
+                  backgroundColor: showFlights ? '#bee3f8' : 'var(--bg-tertiary)',
+                  color: showFlights ? '#2d3748' : 'var(--text-tertiary)',
+                  borderColor: '#90cdf4'
+                }}
+                title={`${showFlights ? 'Hide' : 'Show'} Flights`}
+              >
+                <span className="tile-icon">✈️</span>
+                <span className="tile-content">
+                  <span className="tile-title">Flights</span>
+                  <span className="tile-sub">({flights.length})</span>
+                </span>
+              </button>
+
+              {/* Work package status tiles */}
               {allStatuses.map(status => {
                 const statusCount = workPackages.filter(wp => wp.status === status).length;
                 const isHidden = filteredStatuses.includes(status);
-                const isVisible = filteredStatuses.length === 0 || !filteredStatuses.includes(status);
-                
+                const color = getStatusColor(status);
                 return (
                   <button
                     key={status}
-                    className={`status-symbol ${isHidden ? 'hidden' : 'visible'}`}
+                    type="button"
+                    className={`filter-tile status ${isHidden ? 'inactive' : 'active'}`}
                     onClick={() => handleStatusFilter(status)}
                     style={{
-                      backgroundColor: isVisible ? getStatusColor(status) : 'var(--bg-tertiary)',
-                      color: isVisible ? 'white' : 'var(--text-tertiary)',
-                      opacity: isHidden ? 0.5 : 1,
-                      textDecoration: isHidden ? 'line-through' : 'none'
+                      backgroundColor: isHidden ? 'var(--bg-tertiary)' : color,
+                      color: isHidden ? 'var(--text-tertiary)' : 'white',
+                      borderColor: color,
+                      opacity: isHidden ? 0.6 : 1
                     }}
-                    title={`${status} - ${statusCount} work packages - Click to ${isHidden ? 'show' : 'hide'}`}
+                    title={`${isHidden ? 'Show' : 'Hide'} ${status}`}
                   >
-                    <span className="status-icon">{getStatusSymbol(status)}</span>
-                    <span className="status-text">{status}</span>
-                    <span className="status-count">({statusCount})</span>
+                    <span className="tile-icon">{getStatusSymbol(status)}</span>
+                    <span className="tile-content">
+                      <span className="tile-title">{status}</span>
+                      <span className="tile-sub">({statusCount})</span>
+                    </span>
                   </button>
                 );
               })}
@@ -733,53 +730,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Selected Item Info Section */}
-      <div className="selected-item-section compact">
-        {selectedItem ? (
-          <>
-            <h3>📋 Selected: {selectedItem.id.toString().startsWith('flight-') ? '✈️' : '🔧'} {selectedItem.group}</h3>
-            <div className="selected-item-content">
-              <div className="selected-item-compact">
-                <span><strong>{selectedItem.start_time.format('MMM DD HH:mm')}</strong> → <strong>{selectedItem.end_time.format('HH:mm')}</strong></span>
-                <span>({moment.duration(selectedItem.end_time.diff(selectedItem.start_time)).humanize()})</span>
-                <span className="item-title">{selectedItem.title.split(' | ')[1] || selectedItem.title}</span>
-              </div>
-              <button 
-                onClick={() => {
-                  setSelectedItem(null);
-                }} 
-                className="close-selection-btn compact"
-              >
-                ×
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <h3>⏭️ Next: {(() => {
-              const nextItem = getNextUpcomingItem();
-              return nextItem ? `${nextItem.id.toString().startsWith('flight-') ? '✈️' : '🔧'} ${nextItem.group}` : 'None';
-            })()}</h3>
-            <div className="selected-item-content">
-              {(() => {
-                const nextItem = getNextUpcomingItem();
-                return nextItem ? (
-                  <div className="selected-item-compact">
-                    <span><strong>{nextItem.start_time.format('MMM DD HH:mm')}</strong> → <strong>{nextItem.end_time.format('HH:mm')}</strong></span>
-                    <span>({moment.duration(nextItem.end_time.diff(nextItem.start_time)).humanize()})</span>
-                    <span className="item-title">{nextItem.title.split(' | ')[1] || nextItem.title}</span>
-                    <span className="starts-in">Starts in {moment.duration(nextItem.start_time.diff(moment())).humanize()}</span>
-                  </div>
-                ) : (
-                  <div className="no-upcoming-compact">
-                    <span>No upcoming items scheduled</span>
-                  </div>
-                );
-              })()}
-            </div>
-          </>
-        )}
-      </div>
+    
 
       {/* Timeline Controls */}
       <div className="timeline-controls">
@@ -849,43 +800,59 @@ const App: React.FC = () => {
         </div>
         
         <div className="timeline-control-group">
-          <label>Show Items:</label>
-          <div className="item-visibility-controls horizontal">
-            <label className="visibility-toggle">
-              <input
-                type="checkbox"
-                checked={showFlights}
-                onChange={(e) => setShowFlights(e.target.checked)}
-              />
-              <span>✈️ Flights ({flights.length})</span>
-            </label>
-            <label className="visibility-toggle">
-              <input
-                type="checkbox"
-                checked={true}
-                disabled={true}
-              />
-              <span>🔧 Work Packages ({workPackages.length})</span>
-            </label>
-          </div>
-        </div>
-        
-        <div className="timeline-control-group">
-          <label className="auto-focus-label">
-            <input
-              type="checkbox"
-              checked={autoFocus}
-              onChange={(e) => setAutoFocus(e.target.checked)}
-            />
-            <span>🎯 Auto-focus on next item</span>
-          </label>
-        </div>
-        
-        <div className="timeline-control-group">
           <button onClick={clearFilters} className="clear-filters-btn compact">
             Clear All Filters
           </button>
         </div>
+      </div>
+
+        {/* Selected Item Info Section */}
+      <div className="selected-item-section compact">
+        {selectedItem ? (
+          <>
+            <div className="selected-item-content">
+              <div className="selected-item-compact">
+                <span>{selectedItem.id.toString().startsWith('flight-') ? '✈️' : '🔧'} {selectedItem.group}</span>
+                <span><strong>{selectedItem.start_time.format('MMM DD HH:mm')}</strong> → <strong>{selectedItem.end_time.format('HH:mm')}</strong></span>
+                <span>({moment.duration(selectedItem.end_time.diff(selectedItem.start_time)).humanize()})</span>
+                <span className="item-title">{selectedItem.title.split(' | ')[1] || selectedItem.title}</span>
+              </div>
+              <button 
+                onClick={() => {
+                  setSelectedItem(null);
+                }} 
+                className="close-selection-btn compact"
+              >
+                ×
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            
+            <div className="selected-item-content">
+              {(() => {
+                const nextItem = getNextUpcomingItem();
+                return nextItem ? (
+                  <div className="selected-item-compact">
+                    <span>⏭️ Next: {(() => {
+              const nextItem = getNextUpcomingItem();
+              return nextItem ? `${nextItem.id.toString().startsWith('flight-') ? '✈️' : '🔧'} ${nextItem.group}` : 'None';
+            })()}</span>
+                    <span><strong>{nextItem.start_time.format('MMM DD HH:mm')}</strong> → <strong>{nextItem.end_time.format('HH:mm')}</strong></span>
+                    <span>({moment.duration(nextItem.end_time.diff(nextItem.start_time)).humanize()})</span>
+                    <span className="item-title">{nextItem.title.split(' | ')[1] || nextItem.title}</span>
+                    <span className="starts-in">Starts in {moment.duration(nextItem.start_time.diff(moment())).humanize()}</span>
+                  </div>
+                ) : (
+                  <div className="no-upcoming-compact">
+                    <span>No upcoming items scheduled</span>
+                  </div>
+                );
+              })()}
+            </div>
+          </>
+        )}
       </div>
 
       {loading && <div className="loading">⏳ Loading timeline data...</div>}
@@ -914,6 +881,12 @@ const App: React.FC = () => {
             stackItems
             lineHeight={70}
             selectedItemId={selectedItem ? selectedItem.id : undefined}
+            // Gentle highlight for selected calendar date
+            highlightRanges={highlightedDate ? [{
+              start: highlightedDate.clone().startOf('day').valueOf(),
+              end: highlightedDate.clone().startOf('day').add(1, 'day').valueOf(),
+              className: 'hl-selected-day'
+            }] : []}
             onItemSelect={(itemId, e, time) => {
               console.log('Item selected:', itemId);
               const item = items.find(i => i.id === itemId);
@@ -923,10 +896,46 @@ const App: React.FC = () => {
                 const idx = sorted.findIndex(i => i.id === item.id);
                 navIndexRef.current = idx;
                 setCurrentNavigationIndex(idx);
-                setViewMode('day');
-                const bounds = getTimelineBounds('day', item.start_time);
-                setTimelineStart(bounds.start);
-                setTimelineEnd(bounds.end);
+
+                // Keep current zoom and center horizontally on the item's center
+                const currentDuration = timelineEnd.diff(timelineStart);
+                const itemCenter = item.start_time.clone().add(item.end_time.diff(item.start_time) / 2);
+                const newStart = itemCenter.clone().subtract(currentDuration / 2);
+                const newEnd = newStart.clone().add(currentDuration);
+                setTimelineStart(newStart);
+                setTimelineEnd(newEnd);
+
+                // Sync calendar date to selected item's day
+                setHighlightedDate(item.start_time.clone().startOf('day'));
+
+                // After render, center vertically on the item's row, accounting for sticky header height
+                const centerVertically = () => {
+                  const container = document.querySelector('.timeline-container') as HTMLElement | null;
+                  if (!container) return;
+                  const row = document.querySelector(`.st-row[data-group-id="${item.group}"]`) as HTMLElement | null;
+                  if (!row) return;
+
+                  const cRect = container.getBoundingClientRect();
+                  const rRect = row.getBoundingClientRect();
+                  const header = document.querySelector('.st-tick-header') as HTMLElement | null;
+                  const stickyH = header ? header.clientHeight : 0;
+
+                  const visibleTop = cRect.top + stickyH;
+                  const visibleHeight = Math.max(1, cRect.height - stickyH);
+                  const targetCenterY = visibleTop + visibleHeight / 2;
+                  const elementCenterY = rRect.top + rRect.height / 2;
+                  const delta = elementCenterY - targetCenterY;
+
+                  if (Math.abs(delta) > 1) {
+                    try {
+                      container.scrollBy({ top: delta, behavior: 'smooth' });
+                    } catch {
+                      container.scrollTop += delta;
+                    }
+                  }
+                };
+                // Wait for React to commit and layout, then center (double RAF for reliability)
+                requestAnimationFrame(() => requestAnimationFrame(centerVertically));
               }
             }}
             onItemDeselect={() => {
