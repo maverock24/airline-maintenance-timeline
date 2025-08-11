@@ -36,7 +36,7 @@ const SelectedItemDisplay: React.FC<{ selectedItem: TimelineItem | null; onDesel
                     <span>{isNext ? '⏭️ Next:' : (displayItem.id.toString().startsWith('flight-') ? '✈️' : '🔧')} {displayItem.group}</span>
                     <span><strong>{displayItem.start_time.format('MMM DD HH:mm')}</strong> → <strong>{displayItem.end_time.format('HH:mm')}</strong></span>
                     <span>({duration})</span>
-                    <span className="item-title">{displayTitle}</span>
+                    <span>{displayTitle}</span>
                     {isNext && <span className="starts-in">Starts in {moment.duration(displayItem.start_time.diff(moment())).humanize()}</span>}
                 </div>
             </div>

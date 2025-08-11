@@ -245,6 +245,31 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     return () => clearTimeout(scrollTimeout);
   }, [selectedItemId, byGroup, groups, rowHeights, lineHeight, itemHeight]);
 
+  // Track scrollbar presence to maintain consistent positioning
+  const [scrollbarWidth, setScrollbarWidth] = useState<number>(0);
+  
+  useEffect(() => {
+    const updateScrollbarWidth = () => {
+      if (scrollRef.current) {
+        // Calculate scrollbar width as difference between offset and client width
+        const scrollbarW = scrollRef.current.offsetWidth - scrollRef.current.clientWidth;
+        setScrollbarWidth(scrollbarW);
+      }
+    };
+    
+    updateScrollbarWidth();
+    
+    // Use ResizeObserver to detect when scrollbar appears/disappears
+    const resizeObserver = new ResizeObserver(updateScrollbarWidth);
+    if (scrollRef.current) {
+      resizeObserver.observe(scrollRef.current);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [groups, items]); // Update when data changes that might affect scrollbar
+
   // Helpers
   const timeToPercent = (t: moment.Moment) => {
     const msFromStart = t.diff(start);
@@ -318,81 +343,46 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     onTimeChange(curStart + shiftMs, curEnd + shiftMs);
   };
 
-  // Build time grid lines (major/minor) and tick labels based on visible range
-  const tickHeader = useMemo(() => {
+  // Ultra-simple unified time markers - one source for both header and grid
+  const sharedTimeMarkers = useMemo(() => {
+    const markers: { timestamp: number; label: string; leftPercent: number; centerPercent: number }[] = [];
     const duration = totalMs;
-    // Determine mode if not provided
-    let mode: 'day' | 'week' | 'month' = viewMode || 'day';
-    if (!viewMode) {
-      if (duration <= 2 * 24 * 60 * 60 * 1000) mode = 'day';
-      else if (duration <= 21 * 24 * 60 * 60 * 1000) mode = 'week';
-      else mode = 'month';
+    
+    // Simple step logic: hourly for short durations, daily for longer
+    const stepMs = duration <= 2 * 24 * 60 * 60 * 1000 ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    const isHourly = stepMs === 60 * 60 * 1000;
+    
+    // Start from the first aligned boundary
+    const startMs = start.valueOf();
+    const endMs = end.valueOf();
+    const alignedStart = isHourly 
+      ? start.clone().startOf('hour').valueOf()
+      : start.clone().startOf('day').valueOf();
+    
+    // Generate markers at fixed intervals
+    for (let ts = alignedStart; ts <= endMs; ts += stepMs) {
+      if (ts <= startMs) continue; // Skip markers before visible range
+      
+      // Calculate the center position of the time interval
+      const intervalStart = ts;
+      const intervalCenter = intervalStart + (stepMs / 2);
+      
+      const percent = ((intervalStart - startMs) / duration) * 100;
+      const centerPercent = ((intervalCenter - startMs) / duration) * 100;
+      
+      const label = isHourly 
+        ? moment(ts).format('HH:00')
+        : moment(ts).format('ddd DD');
+        
+      markers.push({
+        timestamp: ts,
+        label,
+        leftPercent: percent,
+        centerPercent
+      });
     }
-
-    let unit: moment.unitOfTime.DurationConstructor;
-    let step = 1;
-    let format = 'HH:mm';
-
-    if (mode === 'day') {
-      unit = 'hour';
-      step = 1;
-      format = 'HH:00';
-    } else {
-      unit = 'day';
-      step = 1;
-      format = mode === 'week' ? 'ddd DD' : 'MMM DD';
-    }
-
-    const ticks: { ts: number; next: number; label: string }[] = [];
-    const aligned = start.clone().startOf(unit);
-    for (let t = aligned.clone(); t.isBefore(end); t.add(step, unit)) {
-      const ts = t.valueOf();
-      const next = t.clone().add(step, unit).valueOf();
-      if (next <= start.valueOf()) continue;
-      if (ts < start.valueOf()) continue;
-      ticks.push({ ts, next, label: t.format(format) });
-    }
-    return { ticks };
-  }, [start, end, totalMs, viewMode]);
-
-  const grid = useMemo(() => {
-    const duration = totalMs;
-    const minors: number[] = [];
-    const majors: number[] = [];
-    const weekends: { start: number; end: number }[] = [];
-
-    let unit: moment.unitOfTime.DurationConstructor = 'hour';
-    let step = 1;
-    if (duration <= 36 * 60 * 60 * 1000) {
-      unit = 'hour'; step = duration <= 12 * 60 * 60 * 1000 ? 1 : 3;
-    } else if (duration <= 21 * 24 * 60 * 60 * 1000) {
-      unit = 'day'; step = 1;
-    } else {
-      unit = 'day'; step = 7; // weekly
-    }
-
-    const startAligned = start.clone().startOf(unit);
-    for (let t = startAligned.clone(); t.isBefore(end); t.add(step, unit)) {
-      const ts = t.valueOf();
-      if (ts <= start.valueOf()) continue;
-      if (t.hours && unit === 'hour' && (t.hours() % 6 === 0)) majors.push(ts); else majors.push(ts);
-      minors.push(ts);
-    }
-
-    // Generate weekend ranges for day-level views
-    if (unit === 'day' || duration > 24 * 60 * 60 * 1000) {
-      const dayStart = start.clone().startOf('day');
-      for (let d = dayStart.clone(); d.isBefore(end); d.add(1, 'day')) {
-        const dayOfWeek = d.day(); // 0 = Sunday, 6 = Saturday
-        if (dayOfWeek === 0 || dayOfWeek === 6) { // Weekend
-          const weekendStart = d.clone().startOf('day').valueOf();
-          const weekendEnd = d.clone().endOf('day').valueOf();
-          weekends.push({ start: weekendStart, end: weekendEnd });
-        }
-      }
-    }
-
-    return { minors, majors, weekends };
+    
+    return markers;
   }, [start, end, totalMs]);
 
   const onTouchStart: React.TouchEventHandler<HTMLDivElement> = (e) => {
@@ -492,21 +482,26 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       <div
         className="st-content"
         ref={contentRef}
+        data-scrollbar-width={scrollbarWidth}
         onMouseDown={onMouseDownContent}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
       >
-        {/* Sticky tick header outside the horizontal scroller so it sticks to the top while the container scrolls vertically */}
+        {/* Sticky tick header that adjusts for scrollbar width */}
         <div className="st-tick-header">
-          {tickHeader.ticks.map((tk) => {
-            const left = timeToPercent(moment(tk.ts));
-            const right = timeToPercent(moment(tk.next));
-            const width = Math.max(0, right - left);
+          {/* Grid lines for header */}
+          {sharedTimeMarkers.map((marker) => {
             return (
-              <div key={tk.ts} className="st-tick" style={{ left: `${left}%`, width: `${width}%` }}>
-                <span className="st-tick-label">{tk.label}</span>
+              <div key={`header-grid-${marker.timestamp}`} className="st-tick-border" style={{ left: `${marker.leftPercent}%` }} />
+            );
+          })}
+          {/* Centered text labels */}
+          {sharedTimeMarkers.map((marker) => {
+            return (
+              <div key={marker.timestamp} className="st-tick" style={{ left: `${marker.centerPercent}%` }}>
+                <span className="st-tick-label">{marker.label}</span>
               </div>
             );
           })}
@@ -516,20 +511,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
           <div className="st-highlights" style={{ 
             height: Object.values(rowHeights).reduce((sum, height) => sum + height, 0) + 'px'
           }}>
-            {/* Weekend highlighting */}
-            {grid.weekends.map((weekend, idx) => {
-              const l = timeToPercent(moment(weekend.start));
-              const r = timeToPercent(moment(weekend.end));
-              const w = Math.max(0, r - l);
-              if (w <= 0) return null;
-              return (
-                <div
-                  key={`weekend-${weekend.start}-${idx}`}
-                  className="st-highlight-range st-weekend"
-                  style={{ left: `${l}%`, width: `${w}%` }}
-                />
-              );
-            })}
+            {/* Weekend highlighting temporarily removed for debugging */}
             {/* Custom highlight ranges (e.g., selected date) */}
             {highlightRanges.map((hr, idx) => {
               const l = timeToPercent(moment(hr.start));
@@ -548,9 +530,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
           <div className="st-grid" style={{ 
             height: Object.values(rowHeights).reduce((sum, height) => sum + height, 0) + 'px'
           }}>
-            {grid.minors.map((ts) => {
-              const p = timeToPercent(moment(ts));
-              return <div key={ts} className="st-grid-line" style={{ left: `${p}%` }} />;
+            {sharedTimeMarkers.map((marker) => {
+              return <div key={`grid-${marker.timestamp}`} className="st-grid-line" style={{ left: `${marker.leftPercent}%` }} />;
             })}
           </div>
           <div className="st-rows">

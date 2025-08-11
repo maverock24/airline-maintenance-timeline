@@ -21,8 +21,3 @@
        font-weight: 500;
        color: var(--text-secondary);
    }
-
-   .starts-in {
-       font-weight: 600;
-       color: var(--accent-primary);
-   }

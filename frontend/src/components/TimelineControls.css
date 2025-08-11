@@ -4,7 +4,6 @@
      align-items: center;
      margin-bottom: 16px;
      padding: 12px;
-     border-radius: var(--border-radius-large);
      flex-shrink: 0;
      flex-direction: row;
  }
@@ -28,7 +27,7 @@
      background: var(--bg-secondary);
      color: var(--text-primary);
      cursor: pointer;
-     min-width: 100px;
+     min-width: 120px;
      text-align: left;
      display: flex;
      justify-content: space-between;

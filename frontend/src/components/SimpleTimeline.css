@@ -96,6 +96,12 @@
   flex-direction: column;
 }
 
+.st-positioning-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden; /* Match the scroll container behavior */
+}
+
 .st-tick-header {
   position: sticky;
   top: 0;
@@ -111,6 +117,25 @@
   flex-shrink: 0;
   box-sizing: border-box;
   transition: transform 0.3s ease-out;
+  /* Dynamically adjust for scrollbar using CSS calc */
+  width: calc(100% - var(--scrollbar-width, 0px));
+}
+
+/* Use CSS custom property to handle scrollbar adjustment */
+.st-content {
+  --scrollbar-width: 0px;
+}
+
+.st-content[data-scrollbar-width="17"] {
+  --scrollbar-width: 17px;
+}
+
+.st-content[data-scrollbar-width="15"] {
+  --scrollbar-width: 15px;
+}
+
+.st-content[data-scrollbar-width="12"] {
+  --scrollbar-width: 12px;
 }
 
 .st-tick-header::before {
@@ -162,6 +187,15 @@
   z-index: -1;
 }
 
+.st-tick-border {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-primary);
+  z-index: 1;
+}
+
 .st-tick {
   position: absolute;
   top: 0;
@@ -169,12 +203,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-left: 1px solid var(--border-primary);
+  /* Transform to center the tick at its position */
+  transform: translateX(-50%);
+  /* No border - we want text centered between grid lines */
+  z-index: 2;
 }
 
 .st-tick-label {
   font-size: 11px;
   color: var(--text-secondary);
+  white-space: nowrap;
+  /* Ensure text doesn't wrap and stays centered */
 }
 
 .st-grid {
