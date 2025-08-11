@@ -2,33 +2,12 @@
 import { Router } from 'express';
 import { getFlights } from '../controllers/flightController';
 import { getWorkPackages } from '../controllers/workPackageController';
-import db from '../services/database';
+import { getHealthStatus } from '../controllers/healthController';
 
 const router = Router();
 
 // Health check endpoint with database connectivity test
-router.get('/health', (req, res) => {
-  // Test database connectivity
-  db.get('SELECT 1 as test', [], (err, row) => {
-    if (err) {
-      console.error('Health check database error:', err);
-      return res.status(503).json({
-        status: 'unhealthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        database: 'disconnected',
-        error: 'Database connection failed'
-      });
-    }
-
-    res.status(200).json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      database: 'connected'
-    });
-  });
-});
+router.get('/health', getHealthStatus);
 
 // Data endpoints
 router.get('/flights', getFlights);

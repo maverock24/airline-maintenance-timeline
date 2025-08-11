@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import db from '../services/database';
 import { Flight, FlightQueryParams } from '../types/api';
+import { loggers } from '../utils/logger';
 
 interface DatabaseFlight {
   id: number;
@@ -14,11 +15,23 @@ interface DatabaseFlight {
 }
 
 export const getFlights = (req: Request, res: Response) => {
+  const startTime = Date.now();
+  
   try {
     // Validate query parameters if they exist
     const { registration, limit }: FlightQueryParams = req.query;
     
+    loggers.business.info('Get flights request', {
+      requestId: req.requestId,
+      filters: { registration, limit },
+      ip: req.ip
+    });
+    
     if (limit && (isNaN(Number(limit)) || Number(limit) < 0)) {
+      loggers.business.warn('Invalid limit parameter', 'Bad Request', {
+        requestId: req.requestId,
+        providedLimit: limit
+      });
       return res.status(400).json({
         error: 'Bad Request',
         message: 'Limit parameter must be a positive number'
@@ -26,6 +39,11 @@ export const getFlights = (req: Request, res: Response) => {
     }
 
     if (registration && typeof registration !== 'string') {
+      loggers.business.warn('Invalid registration parameter', 'Bad Request', {
+        requestId: req.requestId,
+        providedRegistration: registration,
+        type: typeof registration
+      });
       return res.status(400).json({
         error: 'Bad Request',
         message: 'Registration parameter must be a string'
