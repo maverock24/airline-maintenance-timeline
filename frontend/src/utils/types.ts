@@ -47,3 +47,41 @@ export interface TimelineControlsProps {
   handleRegistrationFilter: (registration: string) => void;
   clearFilters: () => void;
 }
+
+// SimpleTimeline interfaces
+export interface SimpleTimelineGroup {
+  id: string;
+  title: string;
+}
+
+export interface SimpleTimelineItem {
+  id: string | number;
+  group: string;
+  title: string;
+  start_time: moment.Moment;
+  end_time: moment.Moment;
+  itemProps?: React.HTMLAttributes<HTMLDivElement>;
+}
+
+export interface SimpleTimelineProps {
+  groups: SimpleTimelineGroup[];
+  items: SimpleTimelineItem[];
+  visibleTimeStart: number;
+  visibleTimeEnd: number;
+  sidebarWidth?: number;
+  lineHeight?: number;
+  itemHeightRatio?: number;
+  canMove?: boolean;
+  canResize?: boolean;
+  canSelect?: boolean;
+  stackItems?: boolean;
+  onItemSelect?: (itemId: string | number, e: React.SyntheticEvent, time: number) => void;
+  onItemDeselect?: () => void;
+  onTimeChange?: (visibleTimeStart: number, visibleTimeEnd: number) => void;
+  // New: selected item highlight
+  selectedItemId?: string | number;
+  // New: view mode hint for tick labels
+  viewMode?: 'day' | 'week' | 'month';
+  // New: highlight ranges for vertical shading (e.g., selected date)
+  highlightRanges?: Array<{ start: number; end: number; className?: string }>;
+}

@@ -1,43 +1,7 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import moment from 'moment';
 import './SimpleTimeline.css';
-
-export interface SimpleTimelineGroup {
-  id: string;
-  title: string;
-}
-
-export interface SimpleTimelineItem {
-  id: string | number;
-  group: string;
-  title: string;
-  start_time: moment.Moment;
-  end_time: moment.Moment;
-  itemProps?: React.HTMLAttributes<HTMLDivElement>;
-}
-
-interface SimpleTimelineProps {
-  groups: SimpleTimelineGroup[];
-  items: SimpleTimelineItem[];
-  visibleTimeStart: number;
-  visibleTimeEnd: number;
-  sidebarWidth?: number;
-  lineHeight?: number;
-  itemHeightRatio?: number;
-  canMove?: boolean;
-  canResize?: boolean;
-  canSelect?: boolean;
-  stackItems?: boolean;
-  onItemSelect?: (itemId: string | number, e: React.SyntheticEvent, time: number) => void;
-  onItemDeselect?: () => void;
-  onTimeChange?: (visibleTimeStart: number, visibleTimeEnd: number) => void;
-  // New: selected item highlight
-  selectedItemId?: string | number;
-  // New: view mode hint for tick labels
-  viewMode?: 'day' | 'week' | 'month';
-  // New: highlight ranges for vertical shading (e.g., selected date)
-  highlightRanges?: Array<{ start: number; end: number; className?: string }>;
-}
+import { SimpleTimelineItem, SimpleTimelineProps } from '../utils/types';
 
 // Minimal, custom timeline compatible with used features of react-calendar-timeline
 const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
@@ -581,7 +545,9 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
               );
             })}
           </div>
-          <div className="st-grid">
+          <div className="st-grid" style={{ 
+            height: Object.values(rowHeights).reduce((sum, height) => sum + height, 0) + 'px'
+          }}>
             {grid.minors.map((ts) => {
               const p = timeToPercent(moment(ts));
               return <div key={ts} className="st-grid-line" style={{ left: `${p}%` }} />;
