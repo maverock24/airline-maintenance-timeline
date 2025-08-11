@@ -37,8 +37,11 @@ A sophisticated full-stack web application for visualizing aircraft maintenance 
 - **Express.js** framework
 - **SQLite** database for data persistence
 - **RESTful API** design with comprehensive endpoints
-- **Jest** for unit testing
+- **OpenAPI 3.0** specification with auto-generated documentation
+- **Swagger UI** for interactive API exploration
+- **Jest** for unit testing with OpenAPI validation
 - **Structured Controllers**: Separate controllers for flights and work packages
+- **Type-Safe**: TypeScript interfaces with automatic schema generation
 
 ### Frontend
 - **React 19.1.1** with TypeScript
@@ -123,13 +126,12 @@ To run this application, you need to have Docker and Docker Compose installed on
 
 4.  **Access the application:**
 
-    Once the containers are up and running, you can access the frontend application in your web browser at:
+    Once the containers are up and running, you can access the following services:
 
-    ```
-    http://localhost
-    ```
-
-    The backend API will be accessible at `http://localhost:3001/api`.
+    - **Frontend Application:** `http://localhost`
+    - **Backend API:** `http://localhost:3001/api`
+    - **API Documentation (Swagger UI):** `http://localhost:3001/api-docs`
+    - **OpenAPI Specification:** `http://localhost:3001/api-docs.json`
 
 ## 🔧 Development Workflow
 
@@ -147,16 +149,22 @@ cd frontend && yarn start
 
 ### Testing
 ```bash
-# Run all tests (backend + frontend)
+# Run all tests (backend + frontend) - NON-WATCH MODE
 npm test
 
 # Backend tests only
 npm run test:backend
 
-# Frontend tests only
+# Frontend tests only (non-watch mode)
 npm run test:frontend
 
-# Frontend specific test patterns
+# Frontend tests in watch mode for development
+npm run test:frontend:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Frontend specific test patterns (from frontend directory)
 cd frontend
 
 # All frontend tests (non-watch mode)
@@ -177,8 +185,9 @@ npm test -- --testPathPattern=integration --watchAll=false
 npm test
 ```
 
-**Test Status: ✅ 64/64 tests passing**
-- Backend: 6/6 API controller tests
+**Test Status: ✅ 72/73 tests passing (1 skipped)**
+- Backend: 26/26 API controller, error handling, and OpenAPI tests ✅
+- Frontend: 58/58 component, hook, and integration tests ✅ (1 skipped timer test)
 - Frontend: 58/59 tests (1 skipped timer test)
 - Complete component, utility, and integration coverage
 

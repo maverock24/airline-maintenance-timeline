@@ -1,8 +1,9 @@
 
 import { Request, Response } from 'express';
 import db from '../services/database';
+import { Flight, FlightQueryParams } from '../types/api';
 
-interface Flight {
+interface DatabaseFlight {
   id: number;
   flight_number: string;
   registration: string;
@@ -14,7 +15,24 @@ interface Flight {
 
 export const getFlights = (req: Request, res: Response) => {
   try {
-    const query = `
+    // Validate query parameters if they exist
+    const { registration, limit }: FlightQueryParams = req.query;
+    
+    if (limit && (isNaN(Number(limit)) || Number(limit) < 0)) {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Limit parameter must be a positive number'
+      });
+    }
+
+    if (registration && typeof registration !== 'string') {
+      return res.status(400).json({
+        error: 'Bad Request',
+        message: 'Registration parameter must be a string'
+      });
+    }
+
+    let query = `
       SELECT 
         id as flightId,
         flight_number as flightNum,
@@ -24,10 +42,23 @@ export const getFlights = (req: Request, res: Response) => {
         departure_time as schedDepTime,
         arrival_time as schedArrTime
       FROM flights 
-      ORDER BY departure_time ASC
     `;
 
-    db.all(query, [], (err, rows: Flight[]) => {
+    const params: any[] = [];
+
+    if (registration) {
+      query += ` WHERE registration = ?`;
+      params.push(registration);
+    }
+
+    query += ` ORDER BY departure_time ASC`;
+
+    if (limit) {
+      query += ` LIMIT ?`;
+      params.push(Number(limit));
+    }
+
+    db.all(query, params, (err, rows: DatabaseFlight[]) => {
       if (err) {
         console.error('Database error in getFlights:', err);
         res.status(500).json({ 

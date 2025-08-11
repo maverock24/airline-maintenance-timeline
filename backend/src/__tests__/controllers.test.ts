@@ -124,4 +124,94 @@ describe('API Error Handling', () => {
       .get('/api/non-existent')
       .expect(404);
   });
+
+  it('should handle invalid limit parameter in flights endpoint', async () => {
+    const response = await request(app)
+      .get('/api/flights?limit=invalid')
+      .expect(400);
+
+    expect(response.body).toHaveProperty('error', 'Bad Request');
+    expect(response.body).toHaveProperty('message', 'Limit parameter must be a positive number');
+  });
+
+  it('should handle negative limit parameter in flights endpoint', async () => {
+    const response = await request(app)
+      .get('/api/flights?limit=-5')
+      .expect(400);
+
+    expect(response.body).toHaveProperty('error', 'Bad Request');
+    expect(response.body).toHaveProperty('message', 'Limit parameter must be a positive number');
+  });
+
+  it('should handle invalid limit parameter in work packages endpoint', async () => {
+    const response = await request(app)
+      .get('/api/work-packages?limit=invalid')
+      .expect(400);
+
+    expect(response.body).toHaveProperty('error', 'Bad Request');
+    expect(response.body).toHaveProperty('message', 'Limit parameter must be a positive number');
+  });
+
+  it('should filter flights by registration parameter', async () => {
+    const response = await request(app)
+      .get('/api/flights?registration=ABC')
+      .expect(200);
+
+    if (response.body.length > 0) {
+      response.body.forEach((flight: any) => {
+        expect(flight.registration).toBe('ABC');
+      });
+    }
+  });
+
+  it('should filter work packages by registration parameter', async () => {
+    const response = await request(app)
+      .get('/api/work-packages?registration=ABC')
+      .expect(200);
+
+    if (response.body.length > 0) {
+      response.body.forEach((workPackage: any) => {
+        expect(workPackage.registration).toBe('ABC');
+      });
+    }
+  });
+
+  it('should filter work packages by status parameter', async () => {
+    const response = await request(app)
+      .get('/api/work-packages?status=Completed')
+      .expect(200);
+
+    if (response.body.length > 0) {
+      response.body.forEach((workPackage: any) => {
+        expect(workPackage.status).toBe('Completed');
+      });
+    }
+  });
+
+  it('should limit results with limit parameter', async () => {
+    const response = await request(app)
+      .get('/api/flights?limit=1')
+      .expect(200);
+
+    expect(response.body.length).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('Health Check', () => {
+  let app: express.Application;
+
+  beforeAll(() => {
+    app = createTestApp();
+  });
+
+  it('should return health status with database connectivity', async () => {
+    const response = await request(app)
+      .get('/api/health')
+      .expect(200);
+
+    expect(response.body).toHaveProperty('status', 'healthy');
+    expect(response.body).toHaveProperty('timestamp');
+    expect(response.body).toHaveProperty('uptime');
+    expect(response.body).toHaveProperty('database', 'connected');
+  });
 });

@@ -14,13 +14,52 @@ const workPackages = [
 ];
 
 db.serialize(() => {
+  // Clear existing data
+  db.run('DELETE FROM flights', (err) => {
+    if (err) {
+      console.error('Failed to clear flights table:', err.message);
+      return;
+    }
+  });
+  
+  db.run('DELETE FROM work_packages', (err) => {
+    if (err) {
+      console.error('Failed to clear work_packages table:', err.message);
+      return;
+    }
+  });
+
   const flightStmt = db.prepare('INSERT INTO flights (flight_number, registration, departure_station, arrival_station, departure_time, arrival_time) VALUES (?, ?, ?, ?, ?, ?)');
-  flights.forEach(flight => flightStmt.run(Object.values(flight)));
-  flightStmt.finalize();
+  
+  flights.forEach((flight, index) => {
+    flightStmt.run(Object.values(flight), (err) => {
+      if (err) {
+        console.error(`Failed to insert flight ${index + 1}:`, err.message);
+      }
+    });
+  });
+  
+  flightStmt.finalize((err) => {
+    if (err) {
+      console.error('Failed to finalize flight statement:', err.message);
+    }
+  });
 
   const workPackageStmt = db.prepare('INSERT INTO work_packages (name, registration, start_time, end_time, work_orders, status) VALUES (?, ?, ?, ?, ?, ?)');
-  workPackages.forEach(wp => workPackageStmt.run(Object.values(wp)));
-  workPackageStmt.finalize();
+  
+  workPackages.forEach((wp, index) => {
+    workPackageStmt.run(Object.values(wp), (err) => {
+      if (err) {
+        console.error(`Failed to insert work package ${index + 1}:`, err.message);
+      }
+    });
+  });
+  
+  workPackageStmt.finalize((err) => {
+    if (err) {
+      console.error('Failed to finalize work package statement:', err.message);
+    } else {
+      console.log('Database seeded successfully');
+    }
+  });
 });
-
-console.log('Database seeded');
