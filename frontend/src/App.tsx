@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect, startTransition } from 'react';
 import moment from 'moment';
 import { TimelineItem } from './utils/types';
 import useTimelineData from './hooks/useTimelineData';
@@ -75,17 +75,33 @@ const App: React.FC = () => {
 
   const goToToday = useCallback(() => jumpToDate(moment()), [jumpToDate]);
 
+  const viewModeChangeRef = useRef<{ viewMode: string; selectedItemId: string | number | null }>({ viewMode: 'week', selectedItemId: null });
+
   useEffect(() => {
+    // Only update timeline if viewMode or selectedItem actually changed
+    const currentViewMode = viewMode;
+    const currentSelectedItemId = selectedItem?.id || null;
+    
+    if (viewModeChangeRef.current.viewMode === currentViewMode && 
+        viewModeChangeRef.current.selectedItemId === currentSelectedItemId) {
+      return;
+    }
+
+    viewModeChangeRef.current = { viewMode: currentViewMode, selectedItemId: currentSelectedItemId };
+
     // Logic for changing timeline view based on viewMode
     let newStart: moment.Moment;
     let newEnd: moment.Moment;
     let centerPoint: moment.Moment;
 
-    // If an item is selected, center the view around it, otherwise use today
+    // If an item is selected, center the view around it
+    // If no item is selected, use the current timeline center to preserve position
     if (selectedItem) {
       centerPoint = selectedItem.start_time.clone().add(selectedItem.end_time.diff(selectedItem.start_time) / 2);
     } else {
-      centerPoint = moment();
+      // Use current timeline center to preserve position
+      const currentCenter = timelineStart.clone().add(timelineEnd.diff(timelineStart) / 2);
+      centerPoint = currentCenter;
     }
 
     switch (viewMode) {
@@ -110,51 +126,40 @@ const App: React.FC = () => {
     
     if (selectedItem) {
       setHighlightedDate(selectedItem.start_time.clone().startOf('day'));
-    } else {
-      setHighlightedDate(moment().startOf('day'));
     }
-  }, [viewMode, selectedItem]);
+  }, [viewMode, selectedItem, timelineStart, timelineEnd]);
 
   const handleItemSelect = useCallback((itemId: string | number) => {
     const item = items.find(i => i.id === itemId);
     if (!item) return;
 
+    // Update selection immediately for responsive feedback
     setSelectedItem(item);
     setHighlightedDate(item.start_time.clone().startOf('day'));
 
-    // Check if item is already visible before adjusting timeline
-    const itemStart = item.start_time.valueOf();
-    const itemEnd = item.end_time.valueOf();
+    // Check if item is already reasonably centered before adjusting timeline
+    const itemStartTime = item.start_time.valueOf();
     const currentStart = timelineStart.valueOf();
     const currentEnd = timelineEnd.valueOf();
     const currentDuration = currentEnd - currentStart;
+    const currentCenter = currentStart + currentDuration / 2;
     
-    // Calculate visible area with some padding (10% on each side)
-    const padding = currentDuration * 0.1;
-    const visibleStart = currentStart + padding;
-    const visibleEnd = currentEnd - padding;
+    // Define a tolerance zone around the center (20% of the duration on each side)
+    const tolerance = currentDuration * 0.2;
+    const isAlreadyCentered = Math.abs(itemStartTime - currentCenter) <= tolerance;
     
-    // Only adjust timeline if item is not comfortably visible
-    const isVisible = itemStart >= visibleStart && itemEnd <= visibleEnd;
-    
-    if (!isVisible) {
-      // Calculate how much we need to shift to bring item into view
-      let shiftAmount = 0;
-      
-      if (itemEnd > visibleEnd) {
-        // Item is to the right, shift right
-        shiftAmount = itemEnd - visibleEnd + padding;
-      } else if (itemStart < visibleStart) {
-        // Item is to the left, shift left
-        shiftAmount = itemStart - visibleStart - padding;
-      }
-      
-      // Apply smooth shift instead of centering
-      const newStart = currentStart + shiftAmount;
-      const newEnd = currentEnd + shiftAmount;
-      
-      setTimelineStart(moment(newStart));
-      setTimelineEnd(moment(newEnd));
+    // Only adjust timeline if item is not already reasonably centered
+    if (!isAlreadyCentered) {
+      // Defer timeline positioning to avoid flickering
+      startTransition(() => {
+        // Center timeline on the item's start time for proper visual alignment
+        const newStart = item.start_time.clone().subtract(currentDuration / 2);
+        const newEnd = item.start_time.clone().add(currentDuration / 2);
+        
+        // Apply the new timeline bounds for smooth scrolling
+        setTimelineStart(newStart);
+        setTimelineEnd(newEnd);
+      });
     }
   }, [items, timelineEnd, timelineStart]);
 
@@ -200,6 +205,16 @@ const App: React.FC = () => {
     }
   }, [items, groups, selectedItem, handleItemSelect]);
 
+  // Clear status filters that are no longer available when aircraft selection changes
+  useEffect(() => {
+    if (filteredStatuses.length > 0) {
+      const validStatuses = filteredStatuses.filter(status => allStatuses.includes(status));
+      if (validStatuses.length !== filteredStatuses.length) {
+        setFilteredStatuses(validStatuses);
+      }
+    }
+  }, [filteredRegistrations, allStatuses, filteredStatuses]);
+
   // Effect to handle clicks outside of dropdown and timeline for deselection
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -208,7 +223,9 @@ const App: React.FC = () => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   if (loading) return <div className="loading">⏳ Loading timeline data...</div>;

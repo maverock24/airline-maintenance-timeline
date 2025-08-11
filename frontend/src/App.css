@@ -18,6 +18,7 @@
    --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.07);
    --border-radius: 6px;
    --border-radius-large: 8px;
+   --weekend-bg: rgba(0, 0, 0, 0.03);
  }
 
  .dark-theme {
@@ -36,6 +37,7 @@
    --warning: #ed8936;
    --error: #fc8181;
    --info: #4299e1;
+   --weekend-bg: rgba(255, 255, 255, 0.05);
  }
 
  .App {

@@ -106,10 +106,9 @@
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-primary);
   border-bottom: 1px solid var(--border-primary);
-  box-shadow: 0 1px 0 var(--border-primary);
   transform: translateZ(0);
   flex-shrink: 0;
-  transition: transform 0.2s ease-out;
+  transition: transform 0.3s ease-out;
 }
 
 .st-tick-header::before {
@@ -152,6 +151,13 @@
   background: rgba(49, 130, 206, 0.10);
   border-left: 1px solid rgba(49, 130, 206, 0.2);
   border-right: 1px solid rgba(49, 130, 206, 0.2);
+}
+
+.st-highlight-range.st-weekend {
+  background: var(--weekend-bg);
+  border-left: none;
+  border-right: none;
+  z-index: -1;
 }
 
 .st-tick {
@@ -208,7 +214,7 @@
   cursor: pointer;
   padding: 6px 8px;
   box-sizing: border-box;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .st-item.selected {

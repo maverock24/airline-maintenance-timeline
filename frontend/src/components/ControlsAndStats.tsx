@@ -100,10 +100,12 @@ const ControlsAndStats: React.FC<ControlsAndStatsProps> = ({
               title={`${showFlights ? 'Hide' : 'Show'} Flights`}
             >
               <span className="tile-icon">✈️</span>
-              <span className="tile-content"><span className="tile-title">Flights</span><span className="tile-sub">({flights.length})</span></span>
+              <span className="tile-content"><span className="tile-title">Flights</span><span className="tile-sub">({filteredRegistrations.length === 0 ? flights.length : flights.filter(f => filteredRegistrations.includes(f.registration)).length})</span></span>
             </button>
             {allStatuses.map((status: string) => {
-              const count = workPackages.filter((wp: WorkPackage) => wp.status === status).length;
+              const count = filteredRegistrations.length === 0 
+                ? workPackages.filter((wp: WorkPackage) => wp.status === status).length
+                : workPackages.filter((wp: WorkPackage) => wp.status === status && filteredRegistrations.includes(wp.registration)).length;
               const isHidden = filteredStatuses.includes(status);
               return (
                 <button

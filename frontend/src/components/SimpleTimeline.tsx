@@ -223,63 +223,76 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   useEffect(() => {
     if (!selectedItemId || !scrollRef.current) return;
 
-    // Find which group contains the selected item
-    let targetGroupIndex = -1;
-    let foundItem = false;
+    // Small delay to allow horizontal timeline positioning to complete first
+    const scrollTimeout = setTimeout(() => {
+      // Find which group contains the selected item and the specific item
+      let targetGroupIndex = -1;
+      let targetItem: PlacedItem | null = null;
 
-    for (let i = 0; i < groups.length; i++) {
-      const group = groups[i];
-      const groupItems = byGroup[group.id] || [];
-      if (groupItems.some(item => item.id === selectedItemId)) {
-        targetGroupIndex = i;
-        foundItem = true;
-        break;
+      for (let i = 0; i < groups.length; i++) {
+        const group = groups[i];
+        const groupItems = byGroup[group.id] || [];
+        const foundItem = groupItems.find(item => item.id === selectedItemId);
+        if (foundItem) {
+          targetGroupIndex = i;
+          targetItem = foundItem;
+          break;
+        }
       }
-    }
 
-    if (!foundItem || targetGroupIndex === -1) return;
+      if (!targetItem || targetGroupIndex === -1 || !scrollRef.current) return;
 
-    // Calculate the vertical position of the target group
-    let targetTop = 0;
-    for (let i = 0; i < targetGroupIndex; i++) {
-      const group = groups[i];
-      targetTop += rowHeights[group.id] || lineHeight;
-    }
+      // Calculate the vertical position of the target item
+      let targetTop = 0;
+      
+      // Add heights of all rows above this group
+      for (let i = 0; i < targetGroupIndex; i++) {
+        const group = groups[i];
+        targetTop += rowHeights[group.id] || lineHeight;
+      }
 
-    // Add half the row height to center the item vertically
-    const targetGroup = groups[targetGroupIndex];
-    const rowHeight = rowHeights[targetGroup.id] || lineHeight;
-    targetTop += rowHeight / 2;
+      // Add the position within the group based on the item's lane
+      const itemTopWithinGroup = 4 + targetItem.lane * (itemHeight + 4);
+      const itemCenterY = targetTop + itemTopWithinGroup + itemHeight / 2;
 
-    // Get the current scroll container dimensions
-    const scrollContainer = scrollRef.current;
-    const containerHeight = scrollContainer.clientHeight;
-    const scrollTop = scrollContainer.scrollTop;
-    
-    // Calculate if we need to scroll
-    const itemTop = targetTop - rowHeight / 2;
-    const itemBottom = targetTop + rowHeight / 2;
-    const visibleTop = scrollTop;
-    const visibleBottom = scrollTop + containerHeight;
-
-    // Only scroll if the item is not fully visible
-    if (itemTop < visibleTop || itemBottom > visibleBottom) {
-      // Center the item in the viewport
-      const newScrollTop = targetTop - containerHeight / 2;
-      scrollContainer.scrollTo({
-        top: Math.max(0, newScrollTop),
-        behavior: 'smooth'
-      });
-
-      // Also sync the sidebar scroll
-      if (sidebarRowsRef.current) {
-        sidebarRowsRef.current.scrollTo({
+      // Get the current scroll container dimensions
+      const scrollContainer = scrollRef.current;
+      const containerHeight = scrollContainer.clientHeight;
+      const currentScrollTop = scrollContainer.scrollTop;
+      
+      // Check if the item is already reasonably visible
+      const itemTop = targetTop + itemTopWithinGroup;
+      const itemBottom = itemTop + itemHeight;
+      const visibleTop = currentScrollTop;
+      const visibleBottom = currentScrollTop + containerHeight;
+      
+      // Add some padding for comfortable viewing (20% of container height)
+      const padding = containerHeight * 0.2;
+      const comfortableTop = visibleTop + padding;
+      const comfortableBottom = visibleBottom - padding;
+      
+      // Only scroll if the item is not comfortably visible
+      if (itemTop < comfortableTop || itemBottom > comfortableBottom) {
+        // Center the item vertically in the viewport
+        const newScrollTop = itemCenterY - containerHeight / 2;
+        
+        scrollContainer.scrollTo({
           top: Math.max(0, newScrollTop),
           behavior: 'smooth'
         });
+
+        // Also sync the sidebar scroll
+        if (sidebarRowsRef.current) {
+          sidebarRowsRef.current.scrollTo({
+            top: Math.max(0, newScrollTop),
+            behavior: 'smooth'
+          });
+        }
       }
-    }
-  }, [selectedItemId, byGroup, groups, rowHeights, lineHeight]);
+    }, 50); // 50ms delay to coordinate with horizontal scrolling
+
+    return () => clearTimeout(scrollTimeout);
+  }, [selectedItemId, byGroup, groups, rowHeights, lineHeight, itemHeight]);
 
   // Helpers
   const timeToPercent = (t: moment.Moment) => {
@@ -395,6 +408,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     const duration = totalMs;
     const minors: number[] = [];
     const majors: number[] = [];
+    const weekends: { start: number; end: number }[] = [];
 
     let unit: moment.unitOfTime.DurationConstructor = 'hour';
     let step = 1;
@@ -414,7 +428,20 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       minors.push(ts);
     }
 
-    return { minors, majors };
+    // Generate weekend ranges for day-level views
+    if (unit === 'day' || duration > 24 * 60 * 60 * 1000) {
+      const dayStart = start.clone().startOf('day');
+      for (let d = dayStart.clone(); d.isBefore(end); d.add(1, 'day')) {
+        const dayOfWeek = d.day(); // 0 = Sunday, 6 = Saturday
+        if (dayOfWeek === 0 || dayOfWeek === 6) { // Weekend
+          const weekendStart = d.clone().startOf('day').valueOf();
+          const weekendEnd = d.clone().endOf('day').valueOf();
+          weekends.push({ start: weekendStart, end: weekendEnd });
+        }
+      }
+    }
+
+    return { minors, majors, weekends };
   }, [start, end, totalMs]);
 
   const onTouchStart: React.TouchEventHandler<HTMLDivElement> = (e) => {
@@ -538,6 +565,21 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
           <div className="st-highlights" style={{ 
             height: Object.values(rowHeights).reduce((sum, height) => sum + height, 0) + 'px'
           }}>
+            {/* Weekend highlighting */}
+            {grid.weekends.map((weekend, idx) => {
+              const l = timeToPercent(moment(weekend.start));
+              const r = timeToPercent(moment(weekend.end));
+              const w = Math.max(0, r - l);
+              if (w <= 0) return null;
+              return (
+                <div
+                  key={`weekend-${weekend.start}-${idx}`}
+                  className="st-highlight-range st-weekend"
+                  style={{ left: `${l}%`, width: `${w}%` }}
+                />
+              );
+            })}
+            {/* Custom highlight ranges (e.g., selected date) */}
             {highlightRanges.map((hr, idx) => {
               const l = timeToPercent(moment(hr.start));
               const r = timeToPercent(moment(hr.end));
@@ -558,7 +600,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
               return <div key={ts} className="st-grid-line" style={{ left: `${p}%` }} />;
             })}
           </div>
-          <div className="st-rows" onClick={() => onItemDeselect && onItemDeselect()}>
+          <div className="st-rows">
             {groups.map((group) => {
               const gi = (byGroup[group.id] || []) as PlacedItem[];
               const rowH = rowHeights[group.id] || lineHeight;
