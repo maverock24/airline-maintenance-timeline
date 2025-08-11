@@ -86,12 +86,10 @@ const useTimelineData = ({ showFlights, filteredRegistrations, filteredStatuses 
   const allRegistrations = useMemo(() => Array.from(new Set([...flights.map(f => f.registration), ...workPackages.map(wp => wp.registration)])).sort(), [flights, workPackages]);
   
   const allStatuses = useMemo(() => {
-    // If no aircraft are selected, show all statuses
     if (filteredRegistrations.length === 0) {
       return Array.from(new Set(workPackages.map(wp => wp.status))).sort();
     }
     
-    // Only show statuses for work packages on the selected aircraft
     const statusesForSelectedAircraft = workPackages
       .filter(wp => filteredRegistrations.includes(wp.registration))
       .map(wp => wp.status);

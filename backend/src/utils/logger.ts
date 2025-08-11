@@ -30,7 +30,6 @@ const customFormat = winston.format.combine(
     const { timestamp, level, message, ...meta } = info;
     let logMessage = `${timestamp} [${level.toUpperCase()}]: ${message}`;
     
-    // Add metadata if present
     if (Object.keys(meta).length > 0) {
       logMessage += ` | ${JSON.stringify(meta)}`;
     }
@@ -39,7 +38,6 @@ const customFormat = winston.format.combine(
   })
 );
 
-// Define the console format for development
 const consoleFormat = winston.format.combine(
   winston.format.colorize({ all: true }),
   winston.format.timestamp({ format: 'HH:mm:ss' }),
@@ -47,7 +45,6 @@ const consoleFormat = winston.format.combine(
     const { timestamp, level, message, ...meta } = info;
     let logMessage = `${timestamp} [${level}]: ${message}`;
     
-    // Add metadata if present (simplified for console)
     if (Object.keys(meta).length > 0) {
       logMessage += ` ${JSON.stringify(meta, null, 2)}`;
     }
@@ -99,7 +96,6 @@ const logger = winston.createLogger({
     }),
   ],
   
-  // Handle exceptions and rejections
   exceptionHandlers: [
     new DailyRotateFile({
       filename: path.join(logsDir, 'exceptions-%DATE%.log'),
@@ -119,7 +115,6 @@ const logger = winston.createLogger({
   ],
 });
 
-// Add console transport for development
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new winston.transports.Console({
     format: consoleFormat,
@@ -127,7 +122,6 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
-// Create a stream object for Morgan HTTP logging
 export const morganStream = {
   write: (message: string) => {
     logger.http(message.trim());

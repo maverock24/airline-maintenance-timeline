@@ -12,7 +12,6 @@ const createTestAppWithSwagger = () => {
   app.use(cors());
   app.use(express.json());
   
-  // Setup Swagger documentation
   setupSwagger(app);
   
   app.use('/api', apiRoutes);

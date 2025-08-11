@@ -3,14 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 
-// Import App after mocks are set up
 import App from '../App';
 
-// Mock fetch
 global.fetch = jest.fn();
 const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 
-// Mock moment with proper implementation
 jest.mock('moment', () => {
   const mockMoment = () => ({
     startOf: () => mockMoment(),

@@ -3,7 +3,6 @@ import moment from 'moment';
 import './SimpleTimeline.css';
 import { SimpleTimelineItem, SimpleTimelineProps } from '../utils/types';
 
-// Minimal, custom timeline compatible with used features of react-calendar-timeline
 const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   groups,
   items,
@@ -191,7 +190,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       for (const it of gi) {
         let laneIdx = 0;
         if (stackItems) {
-          // Find first lane where this item doesn't overlap
           laneIdx = lanes.findIndex((laneEnd) => it.start_time.isSameOrAfter(laneEnd));
           if (laneIdx === -1) {
             laneIdx = lanes.length;
@@ -240,13 +238,11 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       // Calculate the vertical position of the target item
       let targetTop = 0;
       
-      // Add heights of all rows above this group
       for (let i = 0; i < targetGroupIndex; i++) {
         const group = groups[i];
         targetTop += rowHeights[group.id] || lineHeight;
       }
 
-      // Add the position within the group based on the item's lane
       const itemTopWithinGroup = 4 + targetItem.lane * (itemHeight + 4);
       const itemCenterY = targetTop + itemTopWithinGroup + itemHeight / 2;
 
@@ -355,7 +351,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         if (absX > 5 || absY > 5) {
           setDragDirection(absX > absY ? 'horizontal' : 'vertical');
         }
-        return; // Don't do anything until direction is determined
+        return;
       }
       
       if (dragDirection === 'horizontal') {
@@ -649,7 +645,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
                           position: 'absolute',
                           zIndex: isSelected ? 10 : 2,
                           ...(item.itemProps?.style || {}),
-                          // Don't override box-shadow for selected items - let CSS handle it
                           ...(isSelected ? {} : { boxShadow: (item.itemProps?.style as any)?.boxShadow }),
                         }}
                         onClick={(e) => {

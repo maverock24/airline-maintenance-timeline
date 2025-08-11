@@ -18,20 +18,16 @@ morgan.token('response-time-ms', (req: Request, res: Response) => {
   return `${Date.now() - req.startTime}ms`;
 });
 
-// Custom token for request ID (useful for tracing)
 morgan.token('request-id', (req: Request) => {
   return req.requestId || 'unknown';
 });
 
-// Custom token for user agent
 morgan.token('user-agent', (req: Request) => {
   return req.get('User-Agent') || 'unknown';
 });
 
-// Custom format for detailed logging
 const detailedFormat = ':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" :response-time-ms :request-id';
 
-// HTTP request logging middleware
 export const httpLoggingMiddleware = morgan(detailedFormat, {
   stream: morganStream,
   skip: (req: Request, res: Response) => {
@@ -40,7 +36,6 @@ export const httpLoggingMiddleware = morgan(detailedFormat, {
   }
 });
 
-// Request ID middleware
 export const requestIdMiddleware = (req: Request, res: Response, next: NextFunction) => {
   req.requestId = generateRequestId();
   req.startTime = Date.now();
@@ -48,7 +43,6 @@ export const requestIdMiddleware = (req: Request, res: Response, next: NextFunct
   next();
 };
 
-// Request/Response logging middleware
 export const requestResponseLoggingMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const startTime = Date.now();
   
@@ -60,16 +54,13 @@ export const requestResponseLoggingMiddleware = (req: Request, res: Response, ne
     req.get('User-Agent')
   );
   
-  // Capture original response methods
   const originalSend = res.send;
   const originalJson = res.json;
   
-  // Override res.send to log response
   res.send = function(body: any) {
     const duration = Date.now() - startTime;
     loggers.api.response(req.method, req.originalUrl, res.statusCode, duration);
     
-    // Log response details in debug mode
     if (process.env.LOG_LEVEL === 'debug') {
       logger.debug('Response details', {
         requestId: req.requestId,
@@ -85,12 +76,10 @@ export const requestResponseLoggingMiddleware = (req: Request, res: Response, ne
     return originalSend.call(this, body);
   };
   
-  // Override res.json to log response
   res.json = function(obj: any) {
     const duration = Date.now() - startTime;
     loggers.api.response(req.method, req.originalUrl, res.statusCode, duration);
     
-    // Log response details in debug mode
     if (process.env.LOG_LEVEL === 'debug') {
       logger.debug('JSON response details', {
         requestId: req.requestId,
@@ -109,7 +98,6 @@ export const requestResponseLoggingMiddleware = (req: Request, res: Response, ne
   next();
 };
 
-// Error logging middleware
 export const errorLoggingMiddleware = (
   err: any,
   req: Request,
@@ -118,7 +106,6 @@ export const errorLoggingMiddleware = (
 ) => {
   loggers.api.error(req.method, req.originalUrl, err, res.statusCode);
   
-  // Log additional context in debug mode
   if (process.env.LOG_LEVEL === 'debug') {
     logger.debug('Error context', {
       requestId: req.requestId,
@@ -142,7 +129,6 @@ function generateRequestId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Performance monitoring middleware
 export const performanceMonitoringMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const startTime = process.hrtime.bigint();
   

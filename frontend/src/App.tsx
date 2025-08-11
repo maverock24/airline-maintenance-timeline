@@ -34,7 +34,6 @@ const App: React.FC = () => {
     filteredStatuses,
   });
 
-  // Callbacks and Handlers
   const handleRegistrationFilter = useCallback((registration: string) => {
     setFilteredRegistrations(prev =>
       prev.includes(registration) ? prev.filter(r => r !== registration) : [...prev, registration]
@@ -94,20 +93,16 @@ const App: React.FC = () => {
     let newEnd: moment.Moment;
     let centerPoint: moment.Moment;
 
-    // If an item is selected, center the view around it
-    // If no item is selected, use the current timeline center to preserve position
     if (selectedItem) {
       centerPoint = selectedItem.start_time.clone().add(selectedItem.end_time.diff(selectedItem.start_time) / 2);
     } else {
-      // Use current timeline center to preserve position
       const currentCenter = timelineStart.clone().add(timelineEnd.diff(timelineStart) / 2);
       centerPoint = currentCenter;
     }
 
     switch (viewMode) {
       case 'day':
-        // For day view, show 24 hours centered around the selected item or current center
-        const dayDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const dayDuration = 24 * 60 * 60 * 1000;
         newStart = centerPoint.clone().subtract(dayDuration / 2);
         newEnd = centerPoint.clone().add(dayDuration / 2);
         break;
@@ -204,7 +199,6 @@ const App: React.FC = () => {
         }
       }
     } else {
-      // No item selected - use current timeline view center and navigate within filtered aircraft
       const filteredItems = items
         .filter(item => filteredRegistrations.length === 0 || filteredRegistrations.includes(item.group))
         .sort((a, b) => a.start_time.valueOf() - b.start_time.valueOf());
@@ -214,10 +208,8 @@ const App: React.FC = () => {
       const currentViewCenter = timelineStart.clone().add(timelineEnd.diff(timelineStart) / 2);
 
       if (direction === 'next') {
-        // Find next item after current view center in filtered aircraft
         targetItem = filteredItems.find(item => item.start_time.isAfter(currentViewCenter)) || null;
       } else {
-        // Find previous item before current view center in filtered aircraft
         const pastItems = filteredItems.filter(item => item.start_time.isBefore(currentViewCenter));
         targetItem = pastItems[pastItems.length - 1] || null;
       }
@@ -238,7 +230,6 @@ const App: React.FC = () => {
     }
   }, [filteredRegistrations, allStatuses, filteredStatuses]);
 
-  // Effect to handle clicks outside of dropdown and timeline for deselection
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
