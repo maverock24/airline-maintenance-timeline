@@ -106,8 +106,10 @@ const App: React.FC = () => {
 
     switch (viewMode) {
       case 'day':
-        newStart = centerPoint.clone().startOf('day');
-        newEnd = centerPoint.clone().endOf('day');
+        // For day view, show 24 hours centered around the selected item or current center
+        const dayDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        newStart = centerPoint.clone().subtract(dayDuration / 2);
+        newEnd = centerPoint.clone().add(dayDuration / 2);
         break;
       case 'week':
         newStart = centerPoint.clone().startOf('week');

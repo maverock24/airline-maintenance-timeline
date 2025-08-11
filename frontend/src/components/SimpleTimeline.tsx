@@ -29,8 +29,44 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const sidebarRowsRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Combined drag state for both horizontal and vertical dragging
   const [dragging, setDragging] = useState(false);
-  const dragStateRef = useRef<{ x: number; startMs: number; endMs: number } | null>(null);
+  const [dragDirection, setDragDirection] = useState<'horizontal' | 'vertical' | null>(null);
+  const dragStateRef = useRef<{ 
+    x: number; 
+    y: number; 
+    startMs: number; 
+    endMs: number; 
+    startScrollTop: number;
+  } | null>(null);
+
+  // Track user interactions to prevent auto-scroll when user is actively positioning
+  const [userInteracting, setUserInteracting] = useState(false);
+  const userInteractionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to mark user interaction and prevent auto-scroll for a period
+  const markUserInteraction = () => {
+    setUserInteracting(true);
+    
+    // Clear any existing timeout
+    if (userInteractionTimeoutRef.current) {
+      clearTimeout(userInteractionTimeoutRef.current);
+    }
+    
+    // Set a timeout to allow auto-scroll again after 2 seconds of inactivity
+    userInteractionTimeoutRef.current = setTimeout(() => {
+      setUserInteracting(false);
+    }, 2000);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (userInteractionTimeoutRef.current) {
+        clearTimeout(userInteractionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Read parent timeline container padding-top so sticky headers can visually cover it
   const [containerTopPad, setContainerTopPad] = useState<string>('0px');
@@ -115,6 +151,14 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
   const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
+    
+    // Mark user interaction when scrolling (unless it's a programmatic scroll)
+    // We use a simple heuristic: if the user is not currently dragging and 
+    // the scroll event happens, it's likely a user-initiated scroll
+    if (!dragging) {
+      markUserInteraction();
+    }
+    
     if (sidebarRowsRef.current && sidebarRowsRef.current.scrollTop !== scrollTop) {
       sidebarRowsRef.current.scrollTop = scrollTop;
     }
@@ -172,7 +216,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
   // Scroll to selected item when selectedItemId changes
   useEffect(() => {
-    if (!selectedItemId || !scrollRef.current) return;
+    if (!selectedItemId || !scrollRef.current || userInteracting) return;
 
     // Small delay to allow horizontal timeline positioning to complete first
     const scrollTimeout = setTimeout(() => {
@@ -243,7 +287,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     }, 50); // 50ms delay to coordinate with horizontal scrolling
 
     return () => clearTimeout(scrollTimeout);
-  }, [selectedItemId, byGroup, groups, rowHeights, lineHeight, itemHeight]);
+  }, [selectedItemId, byGroup, groups, rowHeights, lineHeight, itemHeight, userInteracting]);
 
   // Track scrollbar presence to maintain consistent positioning
   const [scrollbarWidth, setScrollbarWidth] = useState<number>(0);
@@ -278,24 +322,61 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
   const onMouseDownContent: React.MouseEventHandler<HTMLDivElement> = (e) => {
     if (!onTimeChange) return;
+    
+    // Mark user interaction to prevent auto-scroll
+    markUserInteraction();
+    
     setDragging(true);
-    dragStateRef.current = { x: e.clientX, startMs: start.valueOf(), endMs: end.valueOf() };
+    setDragDirection(null); // Will be determined by first mouse movement
+    const scrollTop = scrollRef.current?.scrollTop || 0;
+    dragStateRef.current = { 
+      x: e.clientX, 
+      y: e.clientY,
+      startMs: start.valueOf(), 
+      endMs: end.valueOf(),
+      startScrollTop: scrollTop
+    };
   };
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       if (!dragging || !onTimeChange || !contentRef.current || !dragStateRef.current) return;
-      const { x, startMs, endMs } = dragStateRef.current;
+      
+      const { x, y, startMs, endMs, startScrollTop } = dragStateRef.current;
       const dx = e.clientX - x;
-      const width = contentRef.current.clientWidth || 1;
-      const shiftRatio = dx / width; // positive dx => move forward in time to the left visually; we want pan left visually => start increases
-      const shiftMs = -Math.round(shiftRatio * (endMs - startMs));
-      onTimeChange(startMs + shiftMs, endMs + shiftMs);
+      const dy = e.clientY - y;
+      
+      // Determine drag direction based on initial movement (if not already determined)
+      if (dragDirection === null) {
+        const absX = Math.abs(dx);
+        const absY = Math.abs(dy);
+        
+        // Require minimum movement to determine direction
+        if (absX > 5 || absY > 5) {
+          setDragDirection(absX > absY ? 'horizontal' : 'vertical');
+        }
+        return; // Don't do anything until direction is determined
+      }
+      
+      if (dragDirection === 'horizontal') {
+        // Horizontal timeline dragging
+        const width = contentRef.current.clientWidth || 1;
+        const shiftRatio = dx / width;
+        const shiftMs = -Math.round(shiftRatio * (endMs - startMs));
+        onTimeChange(startMs + shiftMs, endMs + shiftMs);
+      } else if (dragDirection === 'vertical' && scrollRef.current) {
+        // Vertical scroll dragging
+        const newScrollTop = startScrollTop - dy;
+        scrollRef.current.scrollTop = Math.max(0, newScrollTop);
+      }
     };
+    
     const onUp = () => {
       setDragging(false);
+      setDragDirection(null);
       dragStateRef.current = null;
     };
+    
     if (dragging) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
@@ -304,7 +385,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [dragging, onTimeChange]);
+  }, [dragging, dragDirection, onTimeChange]);
 
   const handleWheel: React.WheelEventHandler<HTMLDivElement> = (e) => {
     if (!onTimeChange) return;
@@ -318,6 +399,9 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
     if (isZoom && content) {
       e.preventDefault();
+      // Mark user interaction for zoom
+      markUserInteraction();
+      
       // Zoom around cursor point
       const rect = content.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -333,11 +417,16 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
     // If user is scrolling vertically, allow default behavior so the outer container scrolls
     if (verticalIntent) {
+      // Mark user interaction for vertical scrolling
+      markUserInteraction();
       return;
     }
 
     // Horizontal pan with wheel
     e.preventDefault();
+    // Mark user interaction for horizontal panning
+    markUserInteraction();
+    
     const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY; // support trackpads
     const shiftMs = Math.round(duration * (delta > 0 ? 0.1 : -0.1));
     onTimeChange(curStart + shiftMs, curEnd + shiftMs);

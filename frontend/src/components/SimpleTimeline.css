@@ -30,7 +30,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 50;
+  z-index: 999;
   height: var(--st-tick-height);
   line-height: var(--st-tick-height);
   padding: 0 12px;
@@ -108,7 +108,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 50;
+  z-index: 99;
   height: var(--st-tick-height);
   line-height: var(--st-tick-height);
   background: var(--bg-secondary);
@@ -118,25 +118,9 @@
   flex-shrink: 0;
   box-sizing: border-box;
   transition: transform 0.3s ease-out;
-  /* Dynamically adjust for scrollbar using CSS calc */
-  width: calc(100% - var(--scrollbar-width, 0px));
-}
-
-/* Use CSS custom property to handle scrollbar adjustment */
-.st-content {
-  --scrollbar-width: 0px;
-}
-
-.st-content[data-scrollbar-width="17"] {
-  --scrollbar-width: 17px;
-}
-
-.st-content[data-scrollbar-width="15"] {
-  --scrollbar-width: 15px;
-}
-
-.st-content[data-scrollbar-width="12"] {
-  --scrollbar-width: 12px;
+  /* Full width since scrollbar is hidden */
+  width: 100%;
+  margin-right: 0;
 }
 
 .st-tick-header::before {
@@ -159,7 +143,16 @@
   overflow-y: auto;
   min-height: 0;
   /* Allow flex item to shrink */
-  scroll-behavior: smooth;
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+}
+
+.st-scroll::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
 }
 
 .st-highlights {

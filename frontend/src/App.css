@@ -56,24 +56,21 @@
 
  /* Timeline container styles */
  .timeline-header-row {
+   height: auto;
    display: flex;
    background: var(--bg-secondary);
    border: 1px solid var(--border-primary);
    border-bottom: none;
-   min-height: 50px;
    align-items: center;
  }
 
  .aircraft-dropdown-section {
-   width: 200px;
-   /* Match sidebar width */
-   flex-shrink: 0;
-   padding: 8px 12px;
+   padding-top: 8px;
    border-right: 1px solid var(--border-primary);
-   background: var(--bg-secondary);
  }
 
  .selected-item-section {
+   height: auto;
    flex: 1;
    display: flex;
    justify-content: center;
