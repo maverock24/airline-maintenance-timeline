@@ -45,6 +45,7 @@
   text-overflow: ellipsis;
   box-sizing: border-box;
   transform: translateZ(0);
+  flex-shrink: 0;
 }
 
 .st-sidebar-header::before {
@@ -60,7 +61,7 @@
 }
 
 .st-sidebar-rows {
-  border-top: 2px solid var(--border-primary);
+  border-top: 1px solid var(--border-primary);
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -80,7 +81,7 @@
   display: flex;
   align-items: center;
   padding: 0 12px;
-  border-bottom: 2px solid var(--border-primary);
+  border-bottom: 1px solid var(--border-primary);
   box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
@@ -108,6 +109,7 @@
   border-bottom: 1px solid var(--border-primary);
   transform: translateZ(0);
   flex-shrink: 0;
+  box-sizing: border-box;
   transition: transform 0.3s ease-out;
 }
 
@@ -197,13 +199,13 @@
 .st-rows {
   position: relative;
   z-index: 2;
-  border-top: 2px solid var(--border-primary);
+  border-top: 1px solid var(--border-primary);
   transition: transform 0.2s ease-out;
 }
 
 .st-row {
   position: relative;
-  border-bottom: 2px solid var(--border-primary);
+  border-bottom: 1px solid var(--border-primary);
   box-sizing: border-box;
   overflow: hidden;
 }

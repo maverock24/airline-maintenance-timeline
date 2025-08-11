@@ -141,32 +141,19 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     anchorRatio?: number; // 0..1 across content width
   } | null>(null);
 
-  // Scroll synchronization between sidebar and content
-  const isScrollingSidebar = useRef(false);
-  const isScrollingContent = useRef(false);
-
+  // Simplified scroll synchronization between sidebar and content
   const handleSidebarScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (isScrollingContent.current) return;
-    isScrollingSidebar.current = true;
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = e.currentTarget.scrollTop;
+    const scrollTop = e.currentTarget.scrollTop;
+    if (scrollRef.current && scrollRef.current.scrollTop !== scrollTop) {
+      scrollRef.current.scrollTop = scrollTop;
     }
-    // Reset flag after animation frame
-    requestAnimationFrame(() => {
-      isScrollingSidebar.current = false;
-    });
   };
 
   const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (isScrollingSidebar.current) return;
-    isScrollingContent.current = true;
-    if (sidebarRowsRef.current) {
-      sidebarRowsRef.current.scrollTop = e.currentTarget.scrollTop;
+    const scrollTop = e.currentTarget.scrollTop;
+    if (sidebarRowsRef.current && sidebarRowsRef.current.scrollTop !== scrollTop) {
+      sidebarRowsRef.current.scrollTop = scrollTop;
     }
-    // Reset flag after animation frame
-    requestAnimationFrame(() => {
-      isScrollingContent.current = false;
-    });
   };
 
   // Derived: group -> items with stacking lanes
