@@ -109,6 +109,7 @@
   box-shadow: 0 1px 0 var(--border-primary);
   transform: translateZ(0);
   flex-shrink: 0;
+  transition: transform 0.2s ease-out;
 }
 
 .st-tick-header::before {
@@ -130,14 +131,16 @@
   overflow-y: auto;
   min-height: 0;
   /* Allow flex item to shrink */
+  scroll-behavior: smooth;
 }
 
 .st-highlights {
   position: absolute;
   top: 0;
-  bottom: 0;
   left: 0;
   right: 0;
+  height: 100%;
+  min-height: 100%;
   z-index: 0;
   pointer-events: none;
 }
@@ -145,7 +148,7 @@
 .st-highlight-range {
   position: absolute;
   top: 0;
-  bottom: 0;
+  height: 100%;
   background: rgba(49, 130, 206, 0.10);
   border-left: 1px solid rgba(49, 130, 206, 0.2);
   border-right: 1px solid rgba(49, 130, 206, 0.2);
@@ -173,6 +176,7 @@
   left: 0;
   right: 0;
   z-index: 1;
+  transition: transform 0.2s ease-out;
 }
 
 .st-grid-line {
@@ -188,6 +192,7 @@
   position: relative;
   z-index: 2;
   border-top: 2px solid var(--border-primary);
+  transition: transform 0.2s ease-out;
 }
 
 .st-row {

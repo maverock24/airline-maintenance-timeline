@@ -122,22 +122,36 @@ const App: React.FC = () => {
     setSelectedItem(item);
     setHighlightedDate(item.start_time.clone().startOf('day'));
 
-    // Ensure item is visible by adjusting timeline view
+    // Check if item is already visible before adjusting timeline
     const itemStart = item.start_time.valueOf();
     const itemEnd = item.end_time.valueOf();
     const currentStart = timelineStart.valueOf();
     const currentEnd = timelineEnd.valueOf();
     const currentDuration = currentEnd - currentStart;
-
-    // Check if item is already visible
-    const isVisible = itemStart >= currentStart && itemEnd <= currentEnd;
-
+    
+    // Calculate visible area with some padding (10% on each side)
+    const padding = currentDuration * 0.1;
+    const visibleStart = currentStart + padding;
+    const visibleEnd = currentEnd - padding;
+    
+    // Only adjust timeline if item is not comfortably visible
+    const isVisible = itemStart >= visibleStart && itemEnd <= visibleEnd;
+    
     if (!isVisible) {
-      // Center the view on the item with appropriate padding
-      const itemCenter = itemStart + (itemEnd - itemStart) / 2;
-      const newDuration = Math.max(currentDuration, (itemEnd - itemStart) * 4); // Ensure sufficient zoom level
-      const newStart = itemCenter - newDuration / 2;
-      const newEnd = newStart + newDuration;
+      // Calculate how much we need to shift to bring item into view
+      let shiftAmount = 0;
+      
+      if (itemEnd > visibleEnd) {
+        // Item is to the right, shift right
+        shiftAmount = itemEnd - visibleEnd + padding;
+      } else if (itemStart < visibleStart) {
+        // Item is to the left, shift left
+        shiftAmount = itemStart - visibleStart - padding;
+      }
+      
+      // Apply smooth shift instead of centering
+      const newStart = currentStart + shiftAmount;
+      const newEnd = currentEnd + shiftAmount;
       
       setTimelineStart(moment(newStart));
       setTimelineEnd(moment(newEnd));

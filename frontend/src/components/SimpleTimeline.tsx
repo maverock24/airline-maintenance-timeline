@@ -219,6 +219,68 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
   const { byGroup, rowHeights, itemHeight } = grouped;
 
+  // Scroll to selected item when selectedItemId changes
+  useEffect(() => {
+    if (!selectedItemId || !scrollRef.current) return;
+
+    // Find which group contains the selected item
+    let targetGroupIndex = -1;
+    let foundItem = false;
+
+    for (let i = 0; i < groups.length; i++) {
+      const group = groups[i];
+      const groupItems = byGroup[group.id] || [];
+      if (groupItems.some(item => item.id === selectedItemId)) {
+        targetGroupIndex = i;
+        foundItem = true;
+        break;
+      }
+    }
+
+    if (!foundItem || targetGroupIndex === -1) return;
+
+    // Calculate the vertical position of the target group
+    let targetTop = 0;
+    for (let i = 0; i < targetGroupIndex; i++) {
+      const group = groups[i];
+      targetTop += rowHeights[group.id] || lineHeight;
+    }
+
+    // Add half the row height to center the item vertically
+    const targetGroup = groups[targetGroupIndex];
+    const rowHeight = rowHeights[targetGroup.id] || lineHeight;
+    targetTop += rowHeight / 2;
+
+    // Get the current scroll container dimensions
+    const scrollContainer = scrollRef.current;
+    const containerHeight = scrollContainer.clientHeight;
+    const scrollTop = scrollContainer.scrollTop;
+    
+    // Calculate if we need to scroll
+    const itemTop = targetTop - rowHeight / 2;
+    const itemBottom = targetTop + rowHeight / 2;
+    const visibleTop = scrollTop;
+    const visibleBottom = scrollTop + containerHeight;
+
+    // Only scroll if the item is not fully visible
+    if (itemTop < visibleTop || itemBottom > visibleBottom) {
+      // Center the item in the viewport
+      const newScrollTop = targetTop - containerHeight / 2;
+      scrollContainer.scrollTo({
+        top: Math.max(0, newScrollTop),
+        behavior: 'smooth'
+      });
+
+      // Also sync the sidebar scroll
+      if (sidebarRowsRef.current) {
+        sidebarRowsRef.current.scrollTo({
+          top: Math.max(0, newScrollTop),
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [selectedItemId, byGroup, groups, rowHeights, lineHeight]);
+
   // Helpers
   const timeToPercent = (t: moment.Moment) => {
     const msFromStart = t.diff(start);
@@ -473,7 +535,9 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         </div>
         <div className="st-scroll" ref={scrollRef} onScroll={handleContentScroll}>
           {/* Gentle vertical highlights for ranges (e.g., selected date) */}
-          <div className="st-highlights">
+          <div className="st-highlights" style={{ 
+            height: Object.values(rowHeights).reduce((sum, height) => sum + height, 0) + 'px'
+          }}>
             {highlightRanges.map((hr, idx) => {
               const l = timeToPercent(moment(hr.start));
               const r = timeToPercent(moment(hr.end));
