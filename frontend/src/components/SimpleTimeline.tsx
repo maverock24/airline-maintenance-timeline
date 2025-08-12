@@ -1,9 +1,10 @@
 import moment from 'moment';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useTimelineInteractions } from '../hooks/useTimelineInteractions';
 import { useTimelineLayout } from '../hooks/useTimelineLayout';
+import { useTimelineScrolling } from '../hooks/useTimelineScrolling';
 import { useTimeMarkers } from '../hooks/useTimeMarkers';
-import { INTERACTION_CONFIG, TIMELINE_CONFIG } from '../utils/constants';
+import { TIMELINE_CONFIG } from '../utils/constants';
 import { SimpleTimelineItem, SimpleTimelineProps } from '../utils/types';
 import './SimpleTimeline.css';
 import TimelineHeader from './TimelineHeader';
@@ -51,28 +52,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     sidebarWidth,
     items,
   });
-
-  const handleSidebarScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollTop = e.currentTarget.scrollTop;
-    if (scrollRef.current && scrollRef.current.scrollTop !== scrollTop) {
-      scrollRef.current.scrollTop = scrollTop;
-    }
-  };
-
-  const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollTop = e.currentTarget.scrollTop;
-
-    if (!interactions.dragging) {
-      interactions.markUserInteraction();
-    }
-
-    if (
-      sidebarRowsRef.current &&
-      sidebarRowsRef.current.scrollTop !== scrollTop
-    ) {
-      sidebarRowsRef.current.scrollTop = scrollTop;
-    }
-  };
 
   type PlacedItem = SimpleTimelineItem & { lane: number };
   const grouped = useMemo(() => {
@@ -132,80 +111,19 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
   const { byGroup, rowHeights, itemHeight } = grouped;
 
-  useEffect(() => {
-    if (!selectedItemId || !scrollRef.current || interactions.userInteracting)
-      return;
-
-    const scrollTimeout = setTimeout(() => {
-      let targetGroupIndex = -1;
-      let targetItem: PlacedItem | null = null;
-
-      for (let i = 0; i < groups.length; i++) {
-        const group = groups[i];
-        const groupItems = byGroup[group.id] || [];
-        const foundItem = groupItems.find((item) => item.id === selectedItemId);
-        if (foundItem) {
-          targetGroupIndex = i;
-          targetItem = foundItem;
-          break;
-        }
-      }
-
-      if (!targetItem || targetGroupIndex === -1 || !scrollRef.current) return;
-
-      let targetTop = 0;
-
-      for (let i = 0; i < targetGroupIndex; i++) {
-        const group = groups[i];
-        targetTop += rowHeights[group.id] || lineHeight;
-      }
-
-      const itemTopWithinGroup =
-        TIMELINE_CONFIG.ITEM_LANE_SPACING +
-        targetItem.lane * (itemHeight + TIMELINE_CONFIG.ITEM_LANE_SPACING);
-      const itemCenterY = targetTop + itemTopWithinGroup + itemHeight / 2;
-
-      const scrollContainer = scrollRef.current;
-      const containerHeight = scrollContainer.clientHeight;
-      const currentScrollTop = scrollContainer.scrollTop;
-
-      const itemTop = targetTop + itemTopWithinGroup;
-      const itemBottom = itemTop + itemHeight;
-      const visibleTop = currentScrollTop;
-      const visibleBottom = currentScrollTop + containerHeight;
-
-      const padding =
-        containerHeight * INTERACTION_CONFIG.COMFORTABLE_VIEWING_PADDING_RATIO;
-      const comfortableTop = visibleTop + padding;
-      const comfortableBottom = visibleBottom - padding;
-
-      if (itemTop < comfortableTop || itemBottom > comfortableBottom) {
-        const newScrollTop = itemCenterY - containerHeight / 2;
-
-        scrollContainer.scrollTo({
-          top: Math.max(0, newScrollTop),
-          behavior: 'smooth',
-        });
-
-        if (sidebarRowsRef.current) {
-          sidebarRowsRef.current.scrollTo({
-            top: Math.max(0, newScrollTop),
-            behavior: 'smooth',
-          });
-        }
-      }
-    }, INTERACTION_CONFIG.SCROLL_COORDINATION_DELAY);
-
-    return () => clearTimeout(scrollTimeout);
-  }, [
+  const scrolling = useTimelineScrolling({
     selectedItemId,
-    byGroup,
+    userInteracting: interactions.userInteracting,
     groups,
+    byGroup,
     rowHeights,
     lineHeight,
     itemHeight,
-    interactions.userInteracting,
-  ]);
+    scrollRef,
+    sidebarRowsRef,
+    isDragging: interactions.dragging,
+    markUserInteraction: interactions.markUserInteraction,
+  });
 
   const timeToPercent = (t: moment.Moment) => {
     const msFromStart = t.diff(start);
@@ -238,7 +156,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         <div
           className='st-sidebar-rows'
           ref={sidebarRowsRef}
-          onScroll={handleSidebarScroll}
+          onScroll={scrolling.handleSidebarScroll}
         >
           {groups.map((g) => (
             <div
@@ -265,7 +183,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         <div
           className='st-scroll'
           ref={scrollRef}
-          onScroll={handleContentScroll}
+          onScroll={scrolling.handleContentScroll}
         >
           <div
             className='st-highlights'
