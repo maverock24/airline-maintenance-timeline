@@ -9,6 +9,7 @@ import { SimpleTimelineItem, SimpleTimelineProps } from '../utils/types';
 import './SimpleTimeline.css';
 import TimelineHeader from './TimelineHeader';
 import TimelineItem from './TimelineItem';
+import TimelineSidebar from './TimelineSidebar';
 
 const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   groups,
@@ -147,27 +148,14 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         } as React.CSSProperties
       }
     >
-      <div
-        className='st-sidebar'
-        style={{ width: layout.computedSidebarWidth }}
-      >
-        <div className='st-sidebar-header'>Aircraft</div>
-        <div
-          className='st-sidebar-rows'
-          ref={sidebarRowsRef}
-          onScroll={scrolling.handleSidebarScroll}
-        >
-          {groups.map((g) => (
-            <div
-              key={g.id}
-              className='st-group'
-              style={{ height: rowHeights[g.id] || lineHeight }}
-            >
-              {g.title}
-            </div>
-          ))}
-        </div>
-      </div>
+      <TimelineSidebar
+        groups={groups}
+        rowHeights={rowHeights}
+        lineHeight={lineHeight}
+        computedSidebarWidth={layout.computedSidebarWidth}
+        sidebarRowsRef={sidebarRowsRef}
+        onSidebarScroll={scrolling.handleSidebarScroll}
+      />
       <div
         className='st-content'
         ref={contentRef}
