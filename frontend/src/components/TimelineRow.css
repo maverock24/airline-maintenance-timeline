@@ -1,8 +1,8 @@
 /* TimelineRow component styles */
 
 .st-row {
-  position: relative;
-  border-bottom: 1px solid var(--border-primary);
-  box-sizing: border-box;
-  overflow: hidden;
+    position: relative;
+    border-bottom: 1px solid var(--border-primary);
+    box-sizing: border-box;
+    overflow: hidden;
 }
