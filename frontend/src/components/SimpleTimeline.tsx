@@ -1,14 +1,15 @@
 import moment from 'moment';
-import React, { useMemo, useRef, useState, useEffect } from 'react';
-import './SimpleTimeline.css';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  DATE_FORMATS,
+  GRID_CONFIG,
+  INTERACTION_CONFIG,
   TIMELINE_CONFIG,
   TIME_CONSTANTS,
-  INTERACTION_CONFIG,
-  GRID_CONFIG,
-  DATE_FORMATS,
 } from '../utils/constants';
 import { SimpleTimelineItem, SimpleTimelineProps } from '../utils/types';
+import './SimpleTimeline.css';
+import TimelineItem from './TimelineItem';
 
 const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   groups,
@@ -727,37 +728,23 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
                     const isFlightItem = item.id
                       .toString()
                       .startsWith('flight-');
+
                     return (
-                      <div
+                      <TimelineItem
                         key={item.id}
-                        className={`st-item ${item.itemProps?.className || ''} ${isSelected ? 'selected' : ''} ${isFlightItem ? 'flight-item' : ''}`}
-                        data-item-id={item.id}
-                        style={{
-                          left: `${left}%`,
-                          width: `${width}%`,
-                          height: itemHeight,
-                          top,
-                          position: 'absolute',
-                          zIndex: isSelected ? 10 : 2,
-                          ...(item.itemProps?.style || {}),
-                          ...(isSelected
-                            ? {}
-                            : {
-                                boxShadow: (
-                                  item.itemProps?.style as React.CSSProperties
-                                )?.boxShadow,
-                              }),
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (canSelect && onItemSelect) {
-                            onItemSelect(item.id, e, item.start_time.valueOf());
-                          }
-                        }}
+                        id={item.id}
                         title={item.title}
-                      >
-                        <div className='st-item-title'>{item.title}</div>
-                      </div>
+                        left={left}
+                        width={width}
+                        height={itemHeight}
+                        top={top}
+                        isSelected={isSelected}
+                        isFlightItem={isFlightItem}
+                        itemProps={item.itemProps}
+                        canSelect={canSelect}
+                        onItemSelect={onItemSelect}
+                        startTime={item.start_time}
+                      />
                     );
                   })}
                 </div>
