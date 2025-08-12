@@ -506,6 +506,11 @@ airline-maintenance-timeline/
 │   │   │   └── database.ts               # Database connection and setup
 │   │   ├── __tests__/
 │   │   │   └── controllers.test.ts       # Unit tests for API controllers
+│   │   ├── config/                       # Configuration files
+│   │   ├── middleware/                   # Express middleware
+│   │   ├── scripts/                      # Utility scripts
+│   │   ├── types/                        # TypeScript type definitions
+│   │   ├── utils/                        # Utility functions
 │   │   └── index.ts                      # Express server setup
 │   ├── Dockerfile                        # Backend containerization
 │   ├── package.json
@@ -515,44 +520,60 @@ airline-maintenance-timeline/
 │   ├── public/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── SimpleTimeline.tsx        # Custom timeline component
-│   │   │   └── SimpleTimeline.css        # Timeline styling with advanced features
+│   │   │   ├── SimpleTimeline.tsx        # Main timeline orchestrator component
+│   │   │   ├── SimpleTimeline.css        # Timeline styling with advanced features
+│   │   │   ├── TimelineSidebar.tsx       # Aircraft groups sidebar component
+│   │   │   ├── TimelineSidebar.css       # Sidebar styling
+│   │   │   ├── TimelineGrid.tsx          # Background grid lines component
+│   │   │   ├── TimelineGrid.css          # Grid styling
+│   │   │   ├── TimelineHighlights.tsx    # Highlight ranges component
+│   │   │   ├── TimelineHighlights.css    # Highlights styling
+│   │   │   ├── TimelineRow.tsx           # Individual row rendering component
+│   │   │   ├── TimelineRow.css           # Row styling
+│   │   │   ├── TimelineHeader.tsx        # Timeline header component
+│   │   │   ├── TimelineHeader.css        # Header styling
+│   │   │   ├── TimelineItem.tsx          # Individual timeline item component
+│   │   │   ├── TimelineItem.css          # Item styling
+│   │   │   ├── TimelineBlockItem.tsx     # Block-style item component
+│   │   │   ├── TimelineBlockItem.css     # Block item styling
+│   │   │   ├── TimelineControls.tsx      # Timeline control buttons
+│   │   │   ├── TimelineControls.css      # Controls styling
+│   │   │   ├── Header.tsx                # Main application header
+│   │   │   ├── Header.css                # Header styling
+│   │   │   ├── ControlsAndStats.tsx      # Application controls and statistics
+│   │   │   ├── ControlsAndStats.css      # Controls styling
+│   │   │   ├── SelectedItemDisplay.tsx   # Selected item display component
+│   │   │   └── SelectedItemDisplay.css   # Selected item styling
+│   │   ├── hooks/
+│   │   │   ├── useTimelineInteractions.ts    # Mouse/keyboard interaction logic
+│   │   │   ├── useTimelineLayout.ts          # Layout calculations hook
+│   │   │   ├── useTimelineScrolling.ts       # Scroll management hook
+│   │   │   ├── useTimelineProcessing.ts      # Data processing and item placement
+│   │   │   ├── useTimelineData.ts            # Data fetching and management
+│   │   │   └── useTimeMarkers.ts             # Time marker generation
 │   │   ├── utils/
-│   │   │   └── types.ts                  # Centralized TypeScript interfaces
+│   │   │   ├── types.ts                  # Centralized TypeScript interfaces
+│   │   │   ├── constants.ts              # Application constants
+│   │   │   └── helpers.ts                # Utility helper functions
+│   │   ├── __tests__/                    # Frontend test files
 │   │   ├── App.tsx                       # Main application component
 │   │   ├── App.css                       # Global styling and theme system
+│   │   ├── index.css                     # Global CSS styles
 │   │   └── index.tsx                     # React application entry point
 │   ├── Dockerfile                        # Frontend containerization
 │   ├── package.json
 │   └── tsconfig.json
+├── .eslintignore                         # ESLint ignore patterns
+├── .gitignore                            # Git ignore patterns
+├── .editorconfig                         # Editor configuration
+├── .vscode/                              # VS Code workspace settings
+├── .husky/                               # Git hooks configuration
 ├── docker-compose.yml                    # Multi-container orchestration
 ├── package.json                          # Root workspace configuration with npm scripts
 ├── package-lock.json                     # Dependency lock file
+├── tsconfig.json                         # Root TypeScript configuration
 └── README.md
 ```
-
-## 🎯 Recent Improvements
-
-### Advanced Timeline Interaction System
-
-- **Intelligent Drag Detection**: Automatically detects whether user intends horizontal timeline panning or vertical scrolling
-- **Hidden Scrollbars**: Clean interface with full functionality via drag interactions
-- **Perfect Grid Alignment**: Timeline headers and content grid lines perfectly aligned
-- **Smart Auto-scroll Prevention**: Timeline respects manual positioning and prevents disruptive jumps
-
-### Enhanced User Experience
-
-- **Horizontal Item Centering**: Selected items properly center in day view (previously broken)
-- **Improved Navigation**: Enhanced next/previous item navigation with aircraft filtering
-- **Visual Polish**: Centered time markers, improved header positioning, smooth animations
-- **Responsive Design**: Optimized for various screen sizes and interaction methods
-
-### Code Architecture Improvements
-
-- **Type Organization**: Moved all interfaces to centralized `utils/types.ts`
-- **Custom Timeline Component**: Replaced external dependency with purpose-built solution
-- **State Management**: Improved item selection logic and timeline positioning coordination
-- **Performance**: Optimized rendering and interaction responsiveness
 
 ## 🚧 Future Development Roadmap
 
