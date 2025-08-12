@@ -1,14 +1,14 @@
 import moment from 'moment';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTimeMarkers } from '../hooks/useTimeMarkers';
 import {
-  DATE_FORMATS,
-  GRID_CONFIG,
   INTERACTION_CONFIG,
   TIMELINE_CONFIG,
   TIME_CONSTANTS,
 } from '../utils/constants';
 import { SimpleTimelineItem, SimpleTimelineProps } from '../utils/types';
 import './SimpleTimeline.css';
+import TimelineHeader from './TimelineHeader';
 import TimelineItem from './TimelineItem';
 
 const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
@@ -31,6 +31,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   const start = useMemo(() => moment(visibleTimeStart), [visibleTimeStart]);
   const end = useMemo(() => moment(visibleTimeEnd), [visibleTimeEnd]);
   const totalMs = useMemo(() => Math.max(1, end.diff(start)), [start, end]);
+  const timeMarkers = useTimeMarkers(start, end, totalMs);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -454,51 +455,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     onTimeChange(curStart + shiftMs, curEnd + shiftMs);
   };
 
-  const sharedTimeMarkers = useMemo(() => {
-    const markers: {
-      timestamp: number;
-      label: string;
-      leftPercent: number;
-      centerPercent: number;
-    }[] = [];
-    const duration = totalMs;
-
-    const stepMs =
-      duration <= GRID_CONFIG.HOURLY_GRID_THRESHOLD
-        ? GRID_CONFIG.HOURLY_STEP_MS
-        : GRID_CONFIG.DAILY_STEP_MS;
-    const isHourly = stepMs === GRID_CONFIG.HOURLY_STEP_MS;
-
-    const startMs = start.valueOf();
-    const endMs = end.valueOf();
-    const alignedStart = isHourly
-      ? start.clone().startOf('hour').valueOf()
-      : start.clone().startOf('day').valueOf();
-
-    for (let ts = alignedStart; ts <= endMs; ts += stepMs) {
-      if (ts <= startMs) continue;
-
-      const intervalStart = ts;
-      const intervalCenter = intervalStart + stepMs / 2;
-
-      const percent = ((intervalStart - startMs) / duration) * 100;
-      const centerPercent = ((intervalCenter - startMs) / duration) * 100;
-
-      const label = isHourly
-        ? moment(ts).format(DATE_FORMATS.HOUR_MARKER)
-        : moment(ts).format(DATE_FORMATS.DAY_MARKER);
-
-      markers.push({
-        timestamp: ts,
-        label,
-        leftPercent: percent,
-        centerPercent,
-      });
-    }
-
-    return markers;
-  }, [start, end, totalMs]);
-
   const onTouchStart: React.TouchEventHandler<HTMLDivElement> = (e) => {
     if (!onTimeChange || !contentRef.current) return;
     const rect = contentRef.current.getBoundingClientRect();
@@ -629,28 +585,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
       >
-        <div className='st-tick-header'>
-          {sharedTimeMarkers.map((marker) => {
-            return (
-              <div
-                key={`header-grid-${marker.timestamp}`}
-                className='st-tick-border'
-                style={{ left: `${marker.leftPercent}%` }}
-              />
-            );
-          })}
-          {sharedTimeMarkers.map((marker) => {
-            return (
-              <div
-                key={marker.timestamp}
-                className='st-tick'
-                style={{ left: `${marker.centerPercent}%` }}
-              >
-                <span className='st-tick-label'>{marker.label}</span>
-              </div>
-            );
-          })}
-        </div>
+        <TimelineHeader start={start} end={end} totalMs={totalMs} />
         <div
           className='st-scroll'
           ref={scrollRef}
@@ -690,7 +625,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
                 ) + 'px',
             }}
           >
-            {sharedTimeMarkers.map((marker) => {
+            {timeMarkers.map((marker) => {
               return (
                 <div
                   key={`grid-${marker.timestamp}`}
