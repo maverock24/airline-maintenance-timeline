@@ -35,7 +35,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   const contentRef = useRef<HTMLDivElement>(null);
   const sidebarRowsRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // Combined drag state for both horizontal and vertical dragging
   const [dragging, setDragging] = useState(false);
   const [dragDirection, setDragDirection] = useState<
     'horizontal' | 'vertical' | null
@@ -48,26 +47,21 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     startScrollTop: number;
   } | null>(null);
 
-  // Track user interactions to prevent auto-scroll when user is actively positioning
   const [userInteracting, setUserInteracting] = useState(false);
   const userInteractionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Function to mark user interaction and prevent auto-scroll for a period
   const markUserInteraction = () => {
     setUserInteracting(true);
 
-    // Clear any existing timeout
     if (userInteractionTimeoutRef.current) {
       clearTimeout(userInteractionTimeoutRef.current);
     }
 
-    // Set a timeout to allow auto-scroll again after 2 seconds of inactivity
     userInteractionTimeoutRef.current = setTimeout(() => {
       setUserInteracting(false);
     }, INTERACTION_CONFIG.USER_INTERACTION_TIMEOUT);
   };
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (userInteractionTimeoutRef.current) {
@@ -76,7 +70,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     };
   }, []);
 
-  // Read parent timeline container padding-top so sticky headers can visually cover it
   const [containerTopPad, setContainerTopPad] = useState<string>('0px');
   useEffect(() => {
     const updatePad = () => {
@@ -92,7 +85,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     return () => window.removeEventListener('resize', updatePad);
   }, []);
 
-  // Responsive + content-based sidebar width
   const [viewportWidth, setViewportWidth] = useState<number>(
     typeof window !== 'undefined' ? window.innerWidth : 1024
   );
@@ -105,7 +97,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   const [computedSidebarWidth, setComputedSidebarWidth] =
     useState<number>(sidebarWidth);
   useEffect(() => {
-    // Measure longest group title width using canvas with computed font
     const el = rootRef.current;
     const ctx = document.createElement('canvas').getContext('2d');
     if (!ctx) {
@@ -117,7 +108,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       const probe = el.querySelector('.st-group') as HTMLElement | null;
       if (probe) {
         const cs = getComputedStyle(probe);
-        // canvas font syntax: style variant weight size family
         font =
           `${cs.fontStyle || ''} ${cs.fontVariant || ''} ${cs.fontWeight || ''} ${cs.fontSize || '14px'} ${cs.fontFamily || 'system-ui'}`.trim();
       }
@@ -139,11 +129,9 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         : TIMELINE_CONFIG.DESKTOP_MAX_SIDEBAR_WIDTH;
     const next = Math.max(minW, Math.min(raw, maxWCap));
 
-    // Defer to next frame to avoid layout thrash
     requestAnimationFrame(() => setComputedSidebarWidth(next));
   }, [groups, viewportWidth, sidebarWidth]);
 
-  // Touch state for mobile pan/pinch
   const touchStateRef = useRef<{
     mode: 'pan' | 'pinch' | null;
     startX: number;
@@ -156,7 +144,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     anchorRatio?: number; // 0..1 across content width
   } | null>(null);
 
-  // Simplified scroll synchronization between sidebar and content
   const handleSidebarScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
     if (scrollRef.current && scrollRef.current.scrollTop !== scrollTop) {
@@ -167,9 +154,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   const handleContentScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
 
-    // Mark user interaction when scrolling (unless it's a programmatic scroll)
-    // We use a simple heuristic: if the user is not currently dragging and
-    // the scroll event happens, it's likely a user-initiated scroll
     if (!dragging) {
       markUserInteraction();
     }
@@ -182,14 +166,12 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     }
   };
 
-  // Derived: group -> items with stacking lanes
   type PlacedItem = SimpleTimelineItem & { lane: number };
   const grouped = useMemo(() => {
     const byGroup: Record<string, PlacedItem[]> = {};
     const itemHeight = Math.floor(lineHeight * itemHeightRatio);
     for (const g of groups) byGroup[g.id] = [];
 
-    // Sort items by start time per group
     const itemsPerGroup: Record<string, SimpleTimelineItem[]> = {};
     for (const g of groups) itemsPerGroup[g.id] = [];
     for (const it of items) {
@@ -206,7 +188,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
     for (const g of groups) {
       const gi = itemsPerGroup[g.id] || [];
-      const lanes: moment.Moment[] = []; // track end_time per lane
+      const lanes: moment.Moment[] = [];
       const placed: PlacedItem[] = [];
       for (const it of gi) {
         let laneIdx = 0;
@@ -242,13 +224,10 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
   const { byGroup, rowHeights, itemHeight } = grouped;
 
-  // Scroll to selected item when selectedItemId changes
   useEffect(() => {
     if (!selectedItemId || !scrollRef.current || userInteracting) return;
 
-    // Small delay to allow horizontal timeline positioning to complete first
     const scrollTimeout = setTimeout(() => {
-      // Find which group contains the selected item and the specific item
       let targetGroupIndex = -1;
       let targetItem: PlacedItem | null = null;
 
@@ -265,7 +244,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
       if (!targetItem || targetGroupIndex === -1 || !scrollRef.current) return;
 
-      // Calculate the vertical position of the target item
       let targetTop = 0;
 
       for (let i = 0; i < targetGroupIndex; i++) {
@@ -278,26 +256,21 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         targetItem.lane * (itemHeight + TIMELINE_CONFIG.ITEM_LANE_SPACING);
       const itemCenterY = targetTop + itemTopWithinGroup + itemHeight / 2;
 
-      // Get the current scroll container dimensions
       const scrollContainer = scrollRef.current;
       const containerHeight = scrollContainer.clientHeight;
       const currentScrollTop = scrollContainer.scrollTop;
 
-      // Check if the item is already reasonably visible
       const itemTop = targetTop + itemTopWithinGroup;
       const itemBottom = itemTop + itemHeight;
       const visibleTop = currentScrollTop;
       const visibleBottom = currentScrollTop + containerHeight;
 
-      // Add some padding for comfortable viewing
       const padding =
         containerHeight * INTERACTION_CONFIG.COMFORTABLE_VIEWING_PADDING_RATIO;
       const comfortableTop = visibleTop + padding;
       const comfortableBottom = visibleBottom - padding;
 
-      // Only scroll if the item is not comfortably visible
       if (itemTop < comfortableTop || itemBottom > comfortableBottom) {
-        // Center the item vertically in the viewport
         const newScrollTop = itemCenterY - containerHeight / 2;
 
         scrollContainer.scrollTo({
@@ -305,7 +278,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
           behavior: 'smooth',
         });
 
-        // Also sync the sidebar scroll
         if (sidebarRowsRef.current) {
           sidebarRowsRef.current.scrollTo({
             top: Math.max(0, newScrollTop),
@@ -326,13 +298,11 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     userInteracting,
   ]);
 
-  // Track scrollbar presence to maintain consistent positioning
   const [scrollbarWidth, setScrollbarWidth] = useState<number>(0);
 
   useEffect(() => {
     const updateScrollbarWidth = () => {
       if (scrollRef.current) {
-        // Calculate scrollbar width as difference between offset and client width
         const scrollbarW =
           scrollRef.current.offsetWidth - scrollRef.current.clientWidth;
         setScrollbarWidth(scrollbarW);
@@ -341,7 +311,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
     updateScrollbarWidth();
 
-    // Use ResizeObserver to detect when scrollbar appears/disappears
     const resizeObserver = new ResizeObserver(updateScrollbarWidth);
     if (scrollRef.current) {
       resizeObserver.observe(scrollRef.current);
@@ -350,9 +319,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [groups, items]); // Update when data changes that might affect scrollbar
+  }, [groups, items]);
 
-  // Helpers
   const timeToPercent = (t: moment.Moment) => {
     const msFromStart = t.diff(start);
     return Math.max(
@@ -367,11 +335,10 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   const onMouseDownContent: React.MouseEventHandler<HTMLDivElement> = (e) => {
     if (!onTimeChange) return;
 
-    // Mark user interaction to prevent auto-scroll
     markUserInteraction();
 
     setDragging(true);
-    setDragDirection(null); // Will be determined by first mouse movement
+    setDragDirection(null);
     const scrollTop = scrollRef.current?.scrollTop || 0;
     dragStateRef.current = {
       x: e.clientX,
@@ -396,12 +363,10 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       const dx = e.clientX - x;
       const dy = e.clientY - y;
 
-      // Determine drag direction based on initial movement (if not already determined)
       if (dragDirection === null) {
         const absX = Math.abs(dx);
         const absY = Math.abs(dy);
 
-        // Require minimum movement to determine direction
         if (
           absX > TIMELINE_CONFIG.DRAG_DIRECTION_THRESHOLD ||
           absY > TIMELINE_CONFIG.DRAG_DIRECTION_THRESHOLD
@@ -412,13 +377,11 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       }
 
       if (dragDirection === 'horizontal') {
-        // Horizontal timeline dragging
         const width = contentRef.current.clientWidth || 1;
         const shiftRatio = dx / width;
         const shiftMs = -Math.round(shiftRatio * (endMs - startMs));
         onTimeChange(startMs + shiftMs, endMs + shiftMs);
       } else if (dragDirection === 'vertical' && scrollRef.current) {
-        // Vertical scroll dragging
         const newScrollTop = startScrollTop - dy;
         scrollRef.current.scrollTop = Math.max(0, newScrollTop);
       }
@@ -452,10 +415,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
 
     if (isZoom && content) {
       e.preventDefault();
-      // Mark user interaction for zoom
       markUserInteraction();
 
-      // Zoom around cursor point
       const rect = content.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const ratio = Math.max(0, Math.min(1, x / Math.max(1, rect.width)));
@@ -474,19 +435,15 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       return;
     }
 
-    // If user is scrolling vertically, allow default behavior so the outer container scrolls
     if (verticalIntent) {
-      // Mark user interaction for vertical scrolling
       markUserInteraction();
       return;
     }
 
-    // Horizontal pan with wheel
     e.preventDefault();
-    // Mark user interaction for horizontal panning
     markUserInteraction();
 
-    const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY; // support trackpads
+    const delta = e.deltaX !== 0 ? e.deltaX : e.deltaY;
     const shiftMs = Math.round(
       duration *
         (delta > 0
@@ -496,7 +453,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     onTimeChange(curStart + shiftMs, curEnd + shiftMs);
   };
 
-  // Ultra-simple unified time markers - one source for both header and grid
   const sharedTimeMarkers = useMemo(() => {
     const markers: {
       timestamp: number;
@@ -506,25 +462,21 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     }[] = [];
     const duration = totalMs;
 
-    // Simple step logic: hourly for short durations, daily for longer
     const stepMs =
       duration <= GRID_CONFIG.HOURLY_GRID_THRESHOLD
         ? GRID_CONFIG.HOURLY_STEP_MS
         : GRID_CONFIG.DAILY_STEP_MS;
     const isHourly = stepMs === GRID_CONFIG.HOURLY_STEP_MS;
 
-    // Start from the first aligned boundary
     const startMs = start.valueOf();
     const endMs = end.valueOf();
     const alignedStart = isHourly
       ? start.clone().startOf('hour').valueOf()
       : start.clone().startOf('day').valueOf();
 
-    // Generate markers at fixed intervals
     for (let ts = alignedStart; ts <= endMs; ts += stepMs) {
-      if (ts <= startMs) continue; // Skip markers before visible range
+      if (ts <= startMs) continue;
 
-      // Calculate the center position of the time interval
       const intervalStart = ts;
       const intervalCenter = intervalStart + stepMs / 2;
 
@@ -598,7 +550,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       state.startDist &&
       state.anchorRatio !== undefined
     ) {
-      // Pinch to zoom
       const t1 = e.touches[0];
       const t2 = e.touches[1];
       const curDist = Math.max(
@@ -619,7 +570,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       const t = e.touches[0];
       const dx = t.clientX - state.startX;
       const dy = t.clientY - state.startY;
-      // Decide if we lock into horizontal pan; else let vertical scroll happen
       if (!state.lockedPan) {
         if (
           Math.abs(dx) >
@@ -627,10 +577,9 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         ) {
           state.lockedPan = true;
         } else {
-          return; // let vertical scroll bubble
+          return;
         }
       }
-      // Horizontal pan
       const shiftRatio = dx / state.width;
       const shiftMs = -Math.round(shiftRatio * duration);
       onTimeChange(curStart + shiftMs, curEnd + shiftMs);
@@ -640,7 +589,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   };
 
   const onTouchEnd: React.TouchEventHandler<HTMLDivElement> = () => {
-    // Reset when touches end
     touchStateRef.current = null;
   };
 
@@ -680,9 +628,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         onTouchEnd={onTouchEnd}
         onTouchCancel={onTouchEnd}
       >
-        {/* Sticky tick header that adjusts for scrollbar width */}
         <div className='st-tick-header'>
-          {/* Grid lines for header */}
           {sharedTimeMarkers.map((marker) => {
             return (
               <div
@@ -692,7 +638,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
               />
             );
           })}
-          {/* Centered text labels */}
           {sharedTimeMarkers.map((marker) => {
             return (
               <div
@@ -710,7 +655,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
           ref={scrollRef}
           onScroll={handleContentScroll}
         >
-          {/* Gentle vertical highlights for ranges (e.g., selected date) */}
           <div
             className='st-highlights'
             style={{
@@ -721,8 +665,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
                 ) + 'px',
             }}
           >
-            {/* Weekend highlighting temporarily removed for debugging */}
-            {/* Custom highlight ranges (e.g., selected date) */}
             {highlightRanges.map((hr, idx) => {
               const l = timeToPercent(moment(hr.start));
               const r = timeToPercent(moment(hr.end));
