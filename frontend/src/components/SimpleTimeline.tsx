@@ -7,6 +7,7 @@ import { useTimeMarkers } from '../hooks/useTimeMarkers';
 import { TIMELINE_CONFIG } from '../utils/constants';
 import { SimpleTimelineItem, SimpleTimelineProps } from '../utils/types';
 import './SimpleTimeline.css';
+import TimelineGrid from './TimelineGrid';
 import TimelineHeader from './TimelineHeader';
 import TimelineItem from './TimelineItem';
 import TimelineSidebar from './TimelineSidebar';
@@ -137,6 +138,11 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     );
   };
 
+  const totalHeight = Object.values(rowHeights).reduce(
+    (sum, height) => sum + height,
+    0
+  );
+
   return (
     <div
       className='simple-timeline'
@@ -175,11 +181,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
           <div
             className='st-highlights'
             style={{
-              height:
-                Object.values(rowHeights).reduce(
-                  (sum, height) => sum + height,
-                  0
-                ) + 'px',
+              height: totalHeight + 'px',
             }}
           >
             {highlightRanges.map((hr, idx) => {
@@ -196,26 +198,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
               );
             })}
           </div>
-          <div
-            className='st-grid'
-            style={{
-              height:
-                Object.values(rowHeights).reduce(
-                  (sum, height) => sum + height,
-                  0
-                ) + 'px',
-            }}
-          >
-            {timeMarkers.map((marker) => {
-              return (
-                <div
-                  key={`grid-${marker.timestamp}`}
-                  className='st-grid-line'
-                  style={{ left: `${marker.leftPercent}%` }}
-                />
-              );
-            })}
-          </div>
+          <TimelineGrid timeMarkers={timeMarkers} totalHeight={totalHeight} />
           <div className='st-rows'>
             {groups.map((group) => {
               const gi = (byGroup[group.id] || []) as PlacedItem[];
