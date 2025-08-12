@@ -1,18 +1,18 @@
 /* TimelineGrid component styles */
 
 .st-grid {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
 }
 
 .st-grid-line {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  width: 0.5px;
-  background: var(--border-primary);
-  opacity: 0.35;
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 0.5px;
+    background: var(--border-primary);
+    opacity: 0.35;
 }
