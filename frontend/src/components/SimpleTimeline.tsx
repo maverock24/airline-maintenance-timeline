@@ -2,6 +2,7 @@ import moment from 'moment';
 import React, { useMemo, useRef } from 'react';
 import { useTimelineInteractions } from '../hooks/useTimelineInteractions';
 import { useTimelineLayout } from '../hooks/useTimelineLayout';
+import { useTimelineProcessing } from '../hooks/useTimelineProcessing';
 import { useTimelineScrolling } from '../hooks/useTimelineScrolling';
 import { useTimeMarkers } from '../hooks/useTimeMarkers';
 import { TIMELINE_CONFIG } from '../utils/constants';
@@ -12,6 +13,8 @@ import TimelineHeader from './TimelineHeader';
 import TimelineHighlights from './TimelineHighlights';
 import TimelineRow from './TimelineRow';
 import TimelineSidebar from './TimelineSidebar';
+
+type PlacedItem = SimpleTimelineItem & { lane: number };
 
 const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
   groups,
@@ -56,63 +59,18 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     items,
   });
 
-  type PlacedItem = SimpleTimelineItem & { lane: number };
-  const grouped = useMemo(() => {
-    const byGroup: Record<string, PlacedItem[]> = {};
-    const itemHeight = Math.floor(lineHeight * itemHeightRatio);
-    for (const g of groups) byGroup[g.id] = [];
+  const processing = useTimelineProcessing({
+    groups,
+    items,
+    stackItems,
+    lineHeight,
+    itemHeightRatio,
+    start,
+    totalMs,
+  });
 
-    const itemsPerGroup: Record<string, SimpleTimelineItem[]> = {};
-    for (const g of groups) itemsPerGroup[g.id] = [];
-    for (const it of items) {
-      if (!itemsPerGroup[it.group]) itemsPerGroup[it.group] = [];
-      itemsPerGroup[it.group].push(it);
-    }
-    for (const gid of Object.keys(itemsPerGroup)) {
-      itemsPerGroup[gid].sort(
-        (a, b) => a.start_time.valueOf() - b.start_time.valueOf()
-      );
-    }
-
-    const rowHeights: Record<string, number> = {};
-
-    for (const g of groups) {
-      const gi = itemsPerGroup[g.id] || [];
-      const lanes: moment.Moment[] = [];
-      const placed: PlacedItem[] = [];
-      for (const it of gi) {
-        let laneIdx = 0;
-        if (stackItems) {
-          laneIdx = lanes.findIndex((laneEnd) =>
-            it.start_time.isSameOrAfter(laneEnd)
-          );
-          if (laneIdx === -1) {
-            laneIdx = lanes.length;
-            lanes.push(it.end_time.clone());
-          } else {
-            lanes[laneIdx] = it.end_time.clone();
-          }
-        } else {
-          laneIdx = 0;
-        }
-        placed.push({ ...it, lane: laneIdx });
-      }
-      byGroup[g.id] = placed;
-      const laneCount = Math.max(
-        1,
-        placed.reduce((m, p) => Math.max(m, p.lane + 1), 1)
-      );
-      rowHeights[g.id] = Math.max(
-        lineHeight,
-        laneCount * (itemHeight + TIMELINE_CONFIG.ITEM_LANE_SPACING) +
-          TIMELINE_CONFIG.ITEM_LANE_SPACING
-      );
-    }
-
-    return { byGroup, rowHeights, itemHeight };
-  }, [groups, items, stackItems, lineHeight, itemHeightRatio]);
-
-  const { byGroup, rowHeights, itemHeight } = grouped;
+  const { byGroup, rowHeights, itemHeight, timeToPercent, totalHeight } =
+    processing;
 
   const scrolling = useTimelineScrolling({
     selectedItemId,
@@ -127,22 +85,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     isDragging: interactions.dragging,
     markUserInteraction: interactions.markUserInteraction,
   });
-
-  const timeToPercent = (t: moment.Moment) => {
-    const msFromStart = t.diff(start);
-    return Math.max(
-      0,
-      Math.min(
-        TIMELINE_CONFIG.MAX_PERCENT,
-        (msFromStart / totalMs) * TIMELINE_CONFIG.MAX_PERCENT
-      )
-    );
-  };
-
-  const totalHeight = Object.values(rowHeights).reduce(
-    (sum, height) => sum + height,
-    0
-  );
 
   return (
     <div
