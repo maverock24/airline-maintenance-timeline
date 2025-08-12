@@ -1,6 +1,7 @@
 import moment from 'moment';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useTimelineInteractions } from '../hooks/useTimelineInteractions';
+import { useTimelineLayout } from '../hooks/useTimelineLayout';
 import { useTimeMarkers } from '../hooks/useTimeMarkers';
 import { INTERACTION_CONFIG, TIMELINE_CONFIG } from '../utils/constants';
 import { SimpleTimelineItem, SimpleTimelineProps } from '../utils/types';
@@ -43,67 +44,13 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     scrollRef,
   });
 
-  const [containerTopPad, setContainerTopPad] = useState<string>('0px');
-  useEffect(() => {
-    const updatePad = () => {
-      const el = rootRef.current;
-      if (!el) return;
-      const container = el.closest('.timeline-container') as HTMLElement | null;
-      if (!container) return;
-      const cs = getComputedStyle(container);
-      setContainerTopPad(cs.paddingTop || '0px');
-    };
-    updatePad();
-    window.addEventListener('resize', updatePad);
-    return () => window.removeEventListener('resize', updatePad);
-  }, []);
-
-  const [viewportWidth, setViewportWidth] = useState<number>(
-    typeof window !== 'undefined' ? window.innerWidth : 1024
-  );
-  useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
-  const [computedSidebarWidth, setComputedSidebarWidth] =
-    useState<number>(sidebarWidth);
-  useEffect(() => {
-    const el = rootRef.current;
-    const ctx = document.createElement('canvas').getContext('2d');
-    if (!ctx) {
-      setComputedSidebarWidth(sidebarWidth);
-      return;
-    }
-    let font = '14px system-ui';
-    if (el) {
-      const probe = el.querySelector('.st-group') as HTMLElement | null;
-      if (probe) {
-        const cs = getComputedStyle(probe);
-        font =
-          `${cs.fontStyle || ''} ${cs.fontVariant || ''} ${cs.fontWeight || ''} ${cs.fontSize || '14px'} ${cs.fontFamily || 'system-ui'}`.trim();
-      }
-    }
-    ctx.font = font;
-    const horizontalPadding = TIMELINE_CONFIG.HORIZONTAL_PADDING;
-
-    let maxW = ctx.measureText('Aircraft').width;
-    for (const g of groups) {
-      const w = ctx.measureText(g.title).width;
-      if (w > maxW) maxW = w;
-    }
-
-    const raw = Math.ceil(maxW + horizontalPadding);
-    const minW = TIMELINE_CONFIG.MIN_SIDEBAR_WIDTH;
-    const maxWCap =
-      viewportWidth < TIMELINE_CONFIG.MOBILE_BREAKPOINT
-        ? TIMELINE_CONFIG.MOBILE_MAX_SIDEBAR_WIDTH
-        : TIMELINE_CONFIG.DESKTOP_MAX_SIDEBAR_WIDTH;
-    const next = Math.max(minW, Math.min(raw, maxWCap));
-
-    requestAnimationFrame(() => setComputedSidebarWidth(next));
-  }, [groups, viewportWidth, sidebarWidth]);
+  const layout = useTimelineLayout({
+    rootRef,
+    scrollRef,
+    groups,
+    sidebarWidth,
+    items,
+  });
 
   const handleSidebarScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
@@ -260,29 +207,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
     interactions.userInteracting,
   ]);
 
-  const [scrollbarWidth, setScrollbarWidth] = useState<number>(0);
-
-  useEffect(() => {
-    const updateScrollbarWidth = () => {
-      if (scrollRef.current) {
-        const scrollbarW =
-          scrollRef.current.offsetWidth - scrollRef.current.clientWidth;
-        setScrollbarWidth(scrollbarW);
-      }
-    };
-
-    updateScrollbarWidth();
-
-    const resizeObserver = new ResizeObserver(updateScrollbarWidth);
-    if (scrollRef.current) {
-      resizeObserver.observe(scrollRef.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [groups, items]);
-
   const timeToPercent = (t: moment.Moment) => {
     const msFromStart = t.diff(start);
     return Math.max(
@@ -299,9 +223,16 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       className='simple-timeline'
       onWheel={interactions.handleWheel}
       ref={rootRef}
-      style={{ ['--tc-pad' as string]: containerTopPad } as React.CSSProperties}
+      style={
+        {
+          ['--tc-pad' as string]: layout.containerTopPad,
+        } as React.CSSProperties
+      }
     >
-      <div className='st-sidebar' style={{ width: computedSidebarWidth }}>
+      <div
+        className='st-sidebar'
+        style={{ width: layout.computedSidebarWidth }}
+      >
         <div className='st-sidebar-header'>Aircraft</div>
         {/* remove spacer; one sticky row across both panes */}
         <div
@@ -323,7 +254,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
       <div
         className='st-content'
         ref={contentRef}
-        data-scrollbar-width={scrollbarWidth}
+        data-scrollbar-width={layout.scrollbarWidth}
         onMouseDown={interactions.onMouseDownContent}
         onTouchStart={interactions.onTouchStart}
         onTouchMove={interactions.onTouchMove}
