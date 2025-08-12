@@ -7,8 +7,10 @@ const mockFetch = fetch as jest.MockedFunction<typeof fetch>;
 
 // Mock helpers
 jest.mock('../../utils/helpers', () => ({
-  getStatusColor: jest.fn((status: string) => `color-${status.toLowerCase().replace(' ', '-')}`),
-  getStatusSymbol: jest.fn((status: string) => `${status[0].toLowerCase()}`)
+  getStatusColor: jest.fn(
+    (status: string) => `color-${status.toLowerCase().replace(' ', '-')}`
+  ),
+  getStatusSymbol: jest.fn((status: string) => `${status[0].toLowerCase()}`),
 }));
 
 describe('useTimelineData Hook', () => {
@@ -20,7 +22,7 @@ describe('useTimelineData Hook', () => {
       schedDepStation: 'JFK',
       schedArrStation: 'LAX',
       schedDepTime: '2024-01-01T10:00:00Z',
-      schedArrTime: '2024-01-01T13:00:00Z'
+      schedArrTime: '2024-01-01T13:00:00Z',
     },
     {
       flightId: '2',
@@ -29,8 +31,8 @@ describe('useTimelineData Hook', () => {
       schedDepStation: 'LAX',
       schedArrStation: 'JFK',
       schedDepTime: '2024-01-02T14:00:00Z',
-      schedArrTime: '2024-01-02T17:00:00Z'
-    }
+      schedArrTime: '2024-01-02T17:00:00Z',
+    },
   ];
 
   const mockWorkPackages = [
@@ -41,7 +43,7 @@ describe('useTimelineData Hook', () => {
       startDateTime: '2024-01-01T08:00:00Z',
       endDateTime: '2024-01-01T18:00:00Z',
       workOrders: 5,
-      status: 'In Progress'
+      status: 'In Progress',
     },
     {
       workPackageId: '2',
@@ -50,8 +52,8 @@ describe('useTimelineData Hook', () => {
       startDateTime: '2024-01-02T09:00:00Z',
       endDateTime: '2024-01-02T17:00:00Z',
       workOrders: 3,
-      status: 'Open'
-    }
+      status: 'Open',
+    },
   ];
 
   beforeEach(() => {
@@ -66,18 +68,18 @@ describe('useTimelineData Hook', () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockFlights
+        json: async () => mockFlights,
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockWorkPackages
+        json: async () => mockWorkPackages,
       } as Response);
 
     const { result } = renderHook(() =>
       useTimelineData({
         showFlights: true,
         filteredRegistrations: [],
-        filteredStatuses: []
+        filteredStatuses: [],
       })
     );
 
@@ -104,7 +106,7 @@ describe('useTimelineData Hook', () => {
       useTimelineData({
         showFlights: true,
         filteredRegistrations: [],
-        filteredStatuses: []
+        filteredStatuses: [],
       })
     );
 
@@ -118,17 +120,16 @@ describe('useTimelineData Hook', () => {
   });
 
   it('handles HTTP errors correctly', async () => {
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 404
-      } as Response);
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+    } as Response);
 
     const { result } = renderHook(() =>
       useTimelineData({
         showFlights: true,
         filteredRegistrations: [],
-        filteredStatuses: []
+        filteredStatuses: [],
       })
     );
 
@@ -143,18 +144,18 @@ describe('useTimelineData Hook', () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockFlights
+        json: async () => mockFlights,
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockWorkPackages
+        json: async () => mockWorkPackages,
       } as Response);
 
     const { result } = renderHook(() =>
       useTimelineData({
         showFlights: false,
         filteredRegistrations: [],
-        filteredStatuses: []
+        filteredStatuses: [],
       })
     );
 
@@ -163,25 +164,27 @@ describe('useTimelineData Hook', () => {
     });
 
     expect(result.current.items).toHaveLength(2); // Only work packages
-    expect(result.current.items.every(item => item.title.includes('Check'))).toBe(true);
+    expect(
+      result.current.items.every((item) => item.title.includes('Check'))
+    ).toBe(true);
   });
 
   it('filters by registration correctly', async () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockFlights
+        json: async () => mockFlights,
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockWorkPackages
+        json: async () => mockWorkPackages,
       } as Response);
 
     const { result } = renderHook(() =>
       useTimelineData({
         showFlights: true,
         filteredRegistrations: ['N123AB'],
-        filteredStatuses: []
+        filteredStatuses: [],
       })
     );
 
@@ -190,25 +193,27 @@ describe('useTimelineData Hook', () => {
     });
 
     expect(result.current.items).toHaveLength(2); // Only items for N123AB
-    expect(result.current.items.every(item => item.group === 'N123AB')).toBe(true);
+    expect(result.current.items.every((item) => item.group === 'N123AB')).toBe(
+      true
+    );
   });
 
   it('filters by status correctly', async () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockFlights
+        json: async () => mockFlights,
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockWorkPackages
+        json: async () => mockWorkPackages,
       } as Response);
 
     const { result } = renderHook(() =>
       useTimelineData({
         showFlights: true,
         filteredRegistrations: [],
-        filteredStatuses: ['Open']
+        filteredStatuses: ['Open'],
       })
     );
 
@@ -218,7 +223,9 @@ describe('useTimelineData Hook', () => {
 
     // Should have flights (2) + work packages that are not 'Open' (1)
     expect(result.current.items).toHaveLength(3);
-    const workPackageItems = result.current.items.filter(item => item.title.includes('Check'));
+    const workPackageItems = result.current.items.filter((item) =>
+      item.title.includes('Check')
+    );
     expect(workPackageItems).toHaveLength(1);
     expect(workPackageItems[0].title).toContain('A-Check');
   });
@@ -227,18 +234,18 @@ describe('useTimelineData Hook', () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockFlights
+        json: async () => mockFlights,
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockWorkPackages
+        json: async () => mockWorkPackages,
       } as Response);
 
     const { result } = renderHook(() =>
       useTimelineData({
         showFlights: true,
         filteredRegistrations: [],
-        filteredStatuses: []
+        filteredStatuses: [],
       })
     );
 
@@ -248,7 +255,7 @@ describe('useTimelineData Hook', () => {
 
     expect(result.current.groups).toEqual([
       { id: 'N123AB', title: 'N123AB' },
-      { id: 'N456CD', title: 'N456CD' }
+      { id: 'N456CD', title: 'N456CD' },
     ]);
   });
 
@@ -256,18 +263,18 @@ describe('useTimelineData Hook', () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockFlights
+        json: async () => mockFlights,
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockWorkPackages
+        json: async () => mockWorkPackages,
       } as Response);
 
     const { result } = renderHook(() =>
       useTimelineData({
         showFlights: true,
         filteredRegistrations: [],
-        filteredStatuses: []
+        filteredStatuses: [],
       })
     );
 

@@ -2,7 +2,26 @@ import request from 'supertest';
 import express from 'express';
 import cors from 'cors';
 import apiRoutes from '../routes';
-import { HTTP_STATUS, API_ROUTES } from '../utils/constants';
+import { API_ROUTES, HTTP_STATUS } from '../utils/constants';
+
+// Type definitions for test responses
+interface WorkPackageResponse {
+  id: number;
+  name: string;
+  registration: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+}
+
+interface FlightResponse {
+  id: number;
+  flight_number: string;
+  registration: string;
+  departure_time: string;
+  arrival_time: string;
+  route: string;
+}
 
 // Create test app
 const createTestApp = () => {
@@ -27,7 +46,7 @@ describe('Flight Controller', () => {
         .expect(HTTP_STATUS.OK);
 
       expect(Array.isArray(response.body)).toBe(true);
-      
+
       if (response.body.length > 0) {
         const flight = response.body[0];
         expect(flight).toHaveProperty('flightId');
@@ -66,12 +85,10 @@ describe('Work Package Controller', () => {
 
   describe('GET /api/work-packages', () => {
     it('should return work packages with 200 status', async () => {
-      const response = await request(app)
-        .get('/api/work-packages')
-        .expect(200);
+      const response = await request(app).get('/api/work-packages').expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
-      
+
       if (response.body.length > 0) {
         const workPackage = response.body[0];
         expect(workPackage).toHaveProperty('workPackageId');
@@ -85,9 +102,7 @@ describe('Work Package Controller', () => {
     });
 
     it('should return work packages in ascending order of start time', async () => {
-      const response = await request(app)
-        .get('/api/work-packages')
-        .expect(200);
+      const response = await request(app).get('/api/work-packages').expect(200);
 
       if (response.body.length > 1) {
         const workPackages = response.body;
@@ -100,13 +115,11 @@ describe('Work Package Controller', () => {
     });
 
     it('should return work packages with valid status values', async () => {
-      const response = await request(app)
-        .get('/api/work-packages')
-        .expect(200);
+      const response = await request(app).get('/api/work-packages').expect(200);
 
       const validStatuses = ['OPEN', 'In Progress', 'Completed', 'Cancelled'];
-      
-      response.body.forEach((workPackage: any) => {
+
+      response.body.forEach((workPackage: WorkPackageResponse) => {
         expect(validStatuses).toContain(workPackage.status);
       });
     });
@@ -121,9 +134,7 @@ describe('API Error Handling', () => {
   });
 
   it('should return 404 for non-existent endpoints', async () => {
-    await request(app)
-      .get('/api/non-existent')
-      .expect(404);
+    await request(app).get('/api/non-existent').expect(404);
   });
 
   it('should handle invalid limit parameter in flights endpoint', async () => {
@@ -132,7 +143,10 @@ describe('API Error Handling', () => {
       .expect(400);
 
     expect(response.body).toHaveProperty('error', 'Bad Request');
-    expect(response.body).toHaveProperty('message', 'Limit parameter must be a positive number');
+    expect(response.body).toHaveProperty(
+      'message',
+      'Limit parameter must be a positive number'
+    );
   });
 
   it('should handle negative limit parameter in flights endpoint', async () => {
@@ -141,7 +155,10 @@ describe('API Error Handling', () => {
       .expect(400);
 
     expect(response.body).toHaveProperty('error', 'Bad Request');
-    expect(response.body).toHaveProperty('message', 'Limit parameter must be a positive number');
+    expect(response.body).toHaveProperty(
+      'message',
+      'Limit parameter must be a positive number'
+    );
   });
 
   it('should handle invalid limit parameter in work packages endpoint', async () => {
@@ -150,7 +167,10 @@ describe('API Error Handling', () => {
       .expect(400);
 
     expect(response.body).toHaveProperty('error', 'Bad Request');
-    expect(response.body).toHaveProperty('message', 'Limit parameter must be a positive number');
+    expect(response.body).toHaveProperty(
+      'message',
+      'Limit parameter must be a positive number'
+    );
   });
 
   it('should filter flights by registration parameter', async () => {
@@ -159,7 +179,7 @@ describe('API Error Handling', () => {
       .expect(200);
 
     if (response.body.length > 0) {
-      response.body.forEach((flight: any) => {
+      response.body.forEach((flight: FlightResponse) => {
         expect(flight.registration).toBe('ABC');
       });
     }
@@ -171,7 +191,7 @@ describe('API Error Handling', () => {
       .expect(200);
 
     if (response.body.length > 0) {
-      response.body.forEach((workPackage: any) => {
+      response.body.forEach((workPackage: WorkPackageResponse) => {
         expect(workPackage.registration).toBe('ABC');
       });
     }
@@ -183,16 +203,14 @@ describe('API Error Handling', () => {
       .expect(200);
 
     if (response.body.length > 0) {
-      response.body.forEach((workPackage: any) => {
+      response.body.forEach((workPackage: WorkPackageResponse) => {
         expect(workPackage.status).toBe('Completed');
       });
     }
   });
 
   it('should limit results with limit parameter', async () => {
-    const response = await request(app)
-      .get('/api/flights?limit=1')
-      .expect(200);
+    const response = await request(app).get('/api/flights?limit=1').expect(200);
 
     expect(response.body.length).toBeLessThanOrEqual(1);
   });
@@ -206,9 +224,7 @@ describe('Health Check', () => {
   });
 
   it('should return health status with database connectivity', async () => {
-    const response = await request(app)
-      .get('/api/health')
-      .expect(200);
+    const response = await request(app).get('/api/health').expect(200);
 
     expect(response.body).toHaveProperty('status', 'healthy');
     expect(response.body).toHaveProperty('timestamp');

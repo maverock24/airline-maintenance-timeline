@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 import { getFlights } from '../controllers/flightController';
 import { getWorkPackages } from '../controllers/workPackageController';
@@ -16,7 +15,7 @@ router.use('*', (req, res) => {
     error: 'API endpoint not found',
     message: `Route ${req.originalUrl} not found`,
     path: req.originalUrl,
-    method: req.method
+    method: req.method,
   });
 });
 

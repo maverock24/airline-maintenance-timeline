@@ -22,12 +22,20 @@ coverage/
 .vscode/
 .idea/
 
+# Linting & Formatting
+.eslintcache
+.prettier-cache
+
 # React
 frontend/.cache/
 frontend/.parcel-cache/
 
 # Docker artifacts
 *.pid
+
+# Database files
+backend/airline.db
+backend/swagger.json
 
 # Misc
 *.swp

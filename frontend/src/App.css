@@ -1,103 +1,103 @@
- :root {
-   --bg-primary: #f8f9fa;
-   --bg-secondary: #ffffff;
-   --bg-tertiary: #f1f3f4;
-   --text-primary: #2d3748;
-   --text-secondary: #4a5568;
-   --text-tertiary: #718096;
-   --border-primary: #e2e8f0;
-   --border-secondary: #cbd5e0;
-   --accent-primary: #4c63b6;
-   --accent-hover: #3c4d8c;
-   --accent-light: #e9ecef;
-   --success: #38a169;
-   --warning: #d69e2e;
-   --error: #e53e3e;
-   --info: #3182ce;
-   --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.05);
-   --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.07);
-   --border-radius: 6px;
-   --border-radius-large: 8px;
-   --weekend-bg: rgba(0, 0, 0, 0.03);
- }
+:root {
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f4;
+  --text-primary: #2d3748;
+  --text-secondary: #4a5568;
+  --text-tertiary: #718096;
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e0;
+  --accent-primary: #4c63b6;
+  --accent-hover: #3c4d8c;
+  --accent-light: #e9ecef;
+  --success: #38a169;
+  --warning: #d69e2e;
+  --error: #e53e3e;
+  --info: #3182ce;
+  --shadow-light: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --border-radius: 6px;
+  --border-radius-large: 8px;
+  --weekend-bg: rgba(0, 0, 0, 0.03);
+}
 
- .dark-theme {
-   --bg-primary: #1a202c;
-   --bg-secondary: #2d3748;
-   --bg-tertiary: #4a5568;
-   --text-primary: #e2e8f0;
-   --text-secondary: #cbd5e0;
-   --text-tertiary: #a0aec0;
-   --border-primary: #4a5568;
-   --border-secondary: #718096;
-   --accent-primary: #667eea;
-   --accent-hover: #7c3aed;
-   --accent-light: #2c3a4b;
-   --success: #48bb78;
-   --warning: #ed8936;
-   --error: #fc8181;
-   --info: #4299e1;
-   --weekend-bg: rgba(255, 255, 255, 0.05);
- }
+.dark-theme {
+  --bg-primary: #1a202c;
+  --bg-secondary: #2d3748;
+  --bg-tertiary: #4a5568;
+  --text-primary: #e2e8f0;
+  --text-secondary: #cbd5e0;
+  --text-tertiary: #a0aec0;
+  --border-primary: #4a5568;
+  --border-secondary: #718096;
+  --accent-primary: #667eea;
+  --accent-hover: #7c3aed;
+  --accent-light: #2c3a4b;
+  --success: #48bb78;
+  --warning: #ed8936;
+  --error: #fc8181;
+  --info: #4299e1;
+  --weekend-bg: rgba(255, 255, 255, 0.05);
+}
 
- .App {
-   display: flex;
-   flex-direction: column;
-   height: 100vh;
-   overflow: auto;
-   margin: 0;
-   padding: 16px;
-   padding-bottom: 30px;
-   font-family: 'Segoe UI', sans-serif;
-   background: var(--bg-primary);
-   color: var(--text-primary);
-   transition: all 0.2s ease;
- }
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: auto;
+  margin: 0;
+  padding: 16px;
+  padding-bottom: 30px;
+  font-family: 'Segoe UI', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
 
- /* Timeline container styles */
- .timeline-header-row {
-   height: auto;
-   display: flex;
-   background: var(--bg-secondary);
-   border: 1px solid var(--border-primary);
-   border-bottom: none;
-   align-items: center;
- }
+/* Timeline container styles */
+.timeline-header-row {
+  height: auto;
+  display: flex;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-bottom: none;
+  align-items: center;
+}
 
- .aircraft-dropdown-section {
-   padding-top: 8px;
-   border-right: 1px solid var(--border-primary);
- }
+.aircraft-dropdown-section {
+  padding-top: 8px;
+  border-right: 1px solid var(--border-primary);
+}
 
- .selected-item-section {
-   height: auto;
-   flex: 1;
-   display: flex;
-   justify-content: center;
-   align-items: center;
-   padding: 8px 16px;
- }
+.selected-item-section {
+  height: auto;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 16px;
+}
 
- .timeline-container {
-   flex: 1;
-   display: flex;
-   flex-direction: column;
-   overflow: hidden;
- }
+.timeline-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
- .loading,
- .error {
-   display: flex;
-   justify-content: center;
-   align-items: center;
-   flex: 1;
-   font-size: 16px;
-   color: var(--accent-primary);
-   background: var(--bg-secondary);
-   border-radius: var(--border-radius-large);
- }
+.loading,
+.error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  font-size: 16px;
+  color: var(--accent-primary);
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-large);
+}
 
- .error {
-   background: var(--error);
-   color: white;
- }
+.error {
+  background: var(--error);
+  color: white;
+}

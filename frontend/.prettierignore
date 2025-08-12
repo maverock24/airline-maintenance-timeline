@@ -1,0 +1,9 @@
+node_modules/
+build/
+coverage/
+public/
+*.log
+.env
+.env.local
+.env.production
+.env.development

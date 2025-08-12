@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+coverage/
+logs/
+*.log
+.env
+.env.local
+.env.production
+.env.development
+swagger.json
+airline.db

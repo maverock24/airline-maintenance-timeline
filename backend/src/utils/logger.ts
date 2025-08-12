@@ -1,6 +1,6 @@
 import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import { LOGGING_CONFIG, SERVER_CONFIG, SWAGGER_CONFIG } from './constants';
+import { LOGGING_CONFIG, SWAGGER_CONFIG } from './constants';
 import path from 'path';
 
 // Define log levels and colors
@@ -30,11 +30,11 @@ const customFormat = winston.format.combine(
   winston.format.printf((info) => {
     const { timestamp, level, message, ...meta } = info;
     let logMessage = `${timestamp} [${level.toUpperCase()}]: ${message}`;
-    
+
     if (Object.keys(meta).length > 0) {
       logMessage += ` | ${JSON.stringify(meta)}`;
     }
-    
+
     return logMessage;
   })
 );
@@ -45,11 +45,11 @@ const consoleFormat = winston.format.combine(
   winston.format.printf((info) => {
     const { timestamp, level, message, ...meta } = info;
     let logMessage = `${timestamp} [${level}]: ${message}`;
-    
+
     if (Object.keys(meta).length > 0) {
       logMessage += ` ${JSON.stringify(meta, null, 2)}`;
     }
-    
+
     return logMessage;
   })
 );
@@ -62,9 +62,9 @@ const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || LOGGING_CONFIG.LEVELS.INFO,
   levels: logLevels,
   format: customFormat,
-  defaultMeta: { 
+  defaultMeta: {
     service: 'airline-maintenance-api',
-    version: SWAGGER_CONFIG.INFO.VERSION
+    version: SWAGGER_CONFIG.INFO.VERSION,
   },
   transports: [
     // Error log file (only errors)
@@ -76,7 +76,7 @@ const logger = winston.createLogger({
       maxFiles: LOGGING_CONFIG.ROTATION.MAX_FILES,
       zippedArchive: true,
     }),
-    
+
     // Combined log file (all levels)
     new DailyRotateFile({
       filename: path.join(logsDir, 'combined-%DATE%.log'),
@@ -85,7 +85,7 @@ const logger = winston.createLogger({
       maxFiles: LOGGING_CONFIG.ROTATION.MAX_FILES,
       zippedArchive: true,
     }),
-    
+
     // HTTP requests log
     new DailyRotateFile({
       filename: path.join(logsDir, 'access-%DATE%.log'),
@@ -96,7 +96,7 @@ const logger = winston.createLogger({
       zippedArchive: true,
     }),
   ],
-  
+
   exceptionHandlers: [
     new DailyRotateFile({
       filename: path.join(logsDir, 'exceptions-%DATE%.log'),
@@ -105,7 +105,7 @@ const logger = winston.createLogger({
       maxFiles: '30d',
     }),
   ],
-  
+
   rejectionHandlers: [
     new DailyRotateFile({
       filename: path.join(logsDir, 'rejections-%DATE%.log'),
@@ -117,10 +117,12 @@ const logger = winston.createLogger({
 });
 
 if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: consoleFormat,
-    level: 'debug',
-  }));
+  logger.add(
+    new winston.transports.Console({
+      format: consoleFormat,
+      level: 'debug',
+    })
+  );
 }
 
 export const morganStream = {
@@ -133,33 +135,45 @@ export const morganStream = {
 export const loggers = {
   // Database operations
   database: {
-    connection: (status: 'connected' | 'disconnected' | 'error', details?: any) => {
-      logger.info('Database connection status', { 
-        status, 
+    connection: (
+      status: 'connected' | 'disconnected' | 'error',
+      details?: Record<string, unknown>
+    ) => {
+      logger.info('Database connection status', {
+        status,
         details,
-        component: 'database'
+        component: 'database',
       });
     },
-    query: (operation: string, table: string, duration?: number, details?: any) => {
+    query: (
+      operation: string,
+      table: string,
+      duration?: number,
+      details?: Record<string, unknown>
+    ) => {
       logger.debug('Database query executed', {
         operation,
         table,
         duration: duration ? `${duration}ms` : undefined,
         details,
-        component: 'database'
+        component: 'database',
       });
     },
-    error: (operation: string, error: any, context?: any) => {
+    error: (
+      operation: string,
+      error: Error,
+      context?: Record<string, unknown>
+    ) => {
       logger.error('Database operation failed', {
         operation,
         error: error.message,
         stack: error.stack,
         context,
-        component: 'database'
+        component: 'database',
       });
-    }
+    },
   },
-  
+
   // API requests
   api: {
     request: (method: string, url: string, ip: string, userAgent?: string) => {
@@ -168,30 +182,35 @@ export const loggers = {
         url,
         ip,
         userAgent,
-        component: 'api'
+        component: 'api',
       });
     },
-    response: (method: string, url: string, statusCode: number, duration: number) => {
+    response: (
+      method: string,
+      url: string,
+      statusCode: number,
+      duration: number
+    ) => {
       logger.http('API response sent', {
         method,
         url,
         statusCode,
         duration: `${duration}ms`,
-        component: 'api'
+        component: 'api',
       });
     },
-    error: (method: string, url: string, error: any, statusCode?: number) => {
+    error: (method: string, url: string, error: Error, statusCode?: number) => {
       logger.error('API request failed', {
         method,
         url,
         error: error.message,
         statusCode,
         stack: error.stack,
-        component: 'api'
+        component: 'api',
       });
-    }
+    },
   },
-  
+
   // Application lifecycle
   app: {
     startup: (port: number, environment: string) => {
@@ -199,7 +218,7 @@ export const loggers = {
         port,
         environment,
         timestamp: new Date().toISOString(),
-        component: 'app'
+        component: 'app',
       });
     },
     shutdown: (reason: string, exitCode?: number) => {
@@ -207,42 +226,50 @@ export const loggers = {
         reason,
         exitCode,
         timestamp: new Date().toISOString(),
-        component: 'app'
+        component: 'app',
       });
     },
-    error: (error: any, context?: string) => {
+    error: (error: Error, context?: string) => {
       logger.error('Application error', {
         error: error.message,
         stack: error.stack,
         context,
-        component: 'app'
-      });
-    }
-  },
-  
-  // Business logic
-  business: {
-    info: (operation: string, details: any) => {
-      logger.info(`Business operation: ${operation}`, {
-        ...details,
-        component: 'business'
+        component: 'app',
       });
     },
-    warn: (operation: string, warning: string, details?: any) => {
+  },
+
+  // Business logic
+  business: {
+    info: (operation: string, details: Record<string, unknown>) => {
+      logger.info(`Business operation: ${operation}`, {
+        ...details,
+        component: 'business',
+      });
+    },
+    warn: (
+      operation: string,
+      warning: string,
+      details?: Record<string, unknown>
+    ) => {
       logger.warn(`Business warning: ${operation}`, {
         warning,
         details,
-        component: 'business'
+        component: 'business',
       });
     },
-    error: (operation: string, error: any, details?: any) => {
+    error: (
+      operation: string,
+      error: Error,
+      details?: Record<string, unknown>
+    ) => {
       logger.error(`Business operation failed: ${operation}`, {
         error: error.message,
         details,
-        component: 'business'
+        component: 'business',
       });
-    }
-  }
+    },
+  },
 };
 
 export default logger;

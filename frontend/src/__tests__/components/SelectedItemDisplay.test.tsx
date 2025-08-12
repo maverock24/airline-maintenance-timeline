@@ -1,7 +1,7 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import moment from 'moment';
+import React from 'react';
 import SelectedItemDisplay from '../../components/SelectedItemDisplay';
 import { TimelineItem } from '../../utils/types';
 
@@ -15,28 +15,28 @@ jest.mock('moment', () => {
     },
     diff: () => 10800000, // 3 hours in milliseconds
     isAfter: () => false,
-    valueOf: () => 1704110400000 // Fixed timestamp
+    valueOf: () => 1704110400000, // Fixed timestamp
   });
 
   mockMoment.duration = () => ({
-    humanize: () => '3 hours'
+    humanize: () => '3 hours',
   });
 
   return {
     __esModule: true,
-    default: mockMoment
+    default: mockMoment,
   };
 });
 
 describe('SelectedItemDisplay Component', () => {
   const mockOnDeselect = jest.fn();
-  
+
   const mockFlightItem: TimelineItem = {
     id: 'flight-1',
     group: 'N123AB',
     title: 'Flight | AA123 JFK→LAX',
     start_time: moment('2024-01-01T10:00:00Z'),
-    end_time: moment('2024-01-01T13:00:00Z')
+    end_time: moment('2024-01-01T13:00:00Z'),
   };
 
   const mockWorkPackageItem: TimelineItem = {
@@ -44,7 +44,7 @@ describe('SelectedItemDisplay Component', () => {
     group: 'N123AB',
     title: 'A-Check',
     start_time: moment('2024-01-01T08:00:00Z'),
-    end_time: moment('2024-01-01T18:00:00Z')
+    end_time: moment('2024-01-01T18:00:00Z'),
   };
 
   const mockItems: TimelineItem[] = [mockFlightItem, mockWorkPackageItem];
@@ -62,7 +62,11 @@ describe('SelectedItemDisplay Component', () => {
       />
     );
 
-    expect(screen.getByText('No item selected. Click an item on the timeline to see details.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'No item selected. Click an item on the timeline to see details.'
+      )
+    ).toBeInTheDocument();
   });
 
   it('displays selected flight item correctly', () => {
@@ -99,7 +103,7 @@ describe('SelectedItemDisplay Component', () => {
   it('handles title parsing for flight items', () => {
     const flightWithPipe = {
       ...mockFlightItem,
-      title: 'Flight | UA456 LAX→JFK'
+      title: 'Flight | UA456 LAX→JFK',
     };
 
     render(
@@ -116,7 +120,7 @@ describe('SelectedItemDisplay Component', () => {
   it('handles title without pipe separator', () => {
     const itemWithoutPipe = {
       ...mockWorkPackageItem,
-      title: 'Simple Title'
+      title: 'Simple Title',
     };
 
     render(

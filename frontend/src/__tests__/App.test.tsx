@@ -1,8 +1,7 @@
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 import '@testing-library/jest-dom';
-
 import App from '../App';
 
 global.fetch = jest.fn();
@@ -20,12 +19,12 @@ jest.mock('moment', () => {
     isAfter: () => false,
     isBefore: () => false,
     isSame: () => false,
-    valueOf: () => 1704110400000
+    valueOf: () => 1704110400000,
   });
-  
+
   return {
     __esModule: true,
-    default: mockMoment
+    default: mockMoment,
   };
 });
 
@@ -40,16 +39,22 @@ jest.mock('../hooks/useTimelineData', () => ({
     allRegistrations: [],
     allStatuses: [],
     workPackages: [],
-    flights: []
-  })
+    flights: [],
+  }),
 }));
 
 // Mock all child components to focus on App logic
 jest.mock('../components/Header', () => {
-  return function MockHeader({ isDarkMode, toggleTheme }: any) {
+  return function MockHeader({
+    isDarkMode,
+    toggleTheme,
+  }: {
+    isDarkMode: boolean;
+    toggleTheme: () => void;
+  }) {
     return (
-      <div data-testid="header">
-        <button onClick={toggleTheme} data-testid="theme-toggle">
+      <div data-testid='header'>
+        <button onClick={toggleTheme} data-testid='theme-toggle'>
           {isDarkMode ? 'Light Mode' : 'Dark Mode'}
         </button>
       </div>
@@ -58,21 +63,35 @@ jest.mock('../components/Header', () => {
 });
 
 jest.mock('../components/ControlsAndStats', () => {
-  return function MockControlsAndStats({ 
-    viewMode, 
-    setViewMode, 
+  return function MockControlsAndStats({
+    viewMode,
+    setViewMode,
     showFlights,
-    setShowFlights 
-  }: any) {
+    setShowFlights,
+  }: {
+    viewMode: string;
+    setViewMode: (mode: string) => void;
+    showFlights: boolean;
+    setShowFlights: (show: boolean) => void;
+  }) {
     return (
-      <div data-testid="controls-and-stats">
-        <button onClick={() => setViewMode('day')} data-testid="day-btn">Day</button>
-        <button onClick={() => setViewMode('week')} data-testid="week-btn">Week</button>
-        <button onClick={() => setViewMode('month')} data-testid="month-btn">Month</button>
-        <button onClick={() => setShowFlights(!showFlights)} data-testid="flights-toggle">
+      <div data-testid='controls-and-stats'>
+        <button onClick={() => setViewMode('day')} data-testid='day-btn'>
+          Day
+        </button>
+        <button onClick={() => setViewMode('week')} data-testid='week-btn'>
+          Week
+        </button>
+        <button onClick={() => setViewMode('month')} data-testid='month-btn'>
+          Month
+        </button>
+        <button
+          onClick={() => setShowFlights(!showFlights)}
+          data-testid='flights-toggle'
+        >
           {showFlights ? 'Hide Flights' : 'Show Flights'}
         </button>
-        <span data-testid="current-view-mode">{viewMode}</span>
+        <span data-testid='current-view-mode'>{viewMode}</span>
       </div>
     );
   };
@@ -80,19 +99,19 @@ jest.mock('../components/ControlsAndStats', () => {
 
 jest.mock('../components/TimelineControls', () => {
   return function MockTimelineControls() {
-    return <div data-testid="timeline-controls">Timeline Controls</div>;
+    return <div data-testid='timeline-controls'>Timeline Controls</div>;
   };
 });
 
 jest.mock('../components/SelectedItemDisplay', () => {
   return function MockSelectedItemDisplay() {
-    return <div data-testid="selected-item-display">Selected Item Display</div>;
+    return <div data-testid='selected-item-display'>Selected Item Display</div>;
   };
 });
 
 jest.mock('../components/SimpleTimeline', () => {
   return function MockSimpleTimeline() {
-    return <div data-testid="simple-timeline">Timeline</div>;
+    return <div data-testid='simple-timeline'>Timeline</div>;
   };
 });
 
@@ -103,11 +122,11 @@ describe('App Component Integration Tests', () => {
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => []
+        json: async () => [],
       } as Response)
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => []
+        json: async () => [],
       } as Response);
   });
 
@@ -121,7 +140,7 @@ describe('App Component Integration Tests', () => {
     await waitFor(() => {
       expect(screen.getByTestId('header')).toBeInTheDocument();
     });
-    
+
     expect(screen.getByTestId('controls-and-stats')).toBeInTheDocument();
     expect(screen.getByTestId('timeline-controls')).toBeInTheDocument();
     expect(screen.getByTestId('selected-item-display')).toBeInTheDocument();
@@ -137,7 +156,7 @@ describe('App Component Integration Tests', () => {
 
     const toggleButton = screen.getByTestId('theme-toggle');
     expect(toggleButton).toHaveTextContent('Dark Mode');
-    
+
     await userEvent.click(toggleButton);
     expect(toggleButton).toHaveTextContent('Light Mode');
   });
@@ -169,7 +188,7 @@ describe('App Component Integration Tests', () => {
 
     const flightsToggle = screen.getByTestId('flights-toggle');
     expect(flightsToggle).toHaveTextContent('Hide Flights'); // Initially true
-    
+
     await userEvent.click(flightsToggle);
     expect(flightsToggle).toHaveTextContent('Show Flights');
   });
@@ -180,8 +199,10 @@ describe('App Component Integration Tests', () => {
     await waitFor(() => {
       expect(screen.getByTestId('current-view-mode')).toHaveTextContent('week');
     });
-    
-    expect(screen.getByTestId('flights-toggle')).toHaveTextContent('Hide Flights');
+
+    expect(screen.getByTestId('flights-toggle')).toHaveTextContent(
+      'Hide Flights'
+    );
     expect(screen.getByTestId('theme-toggle')).toHaveTextContent('Dark Mode');
   });
 });

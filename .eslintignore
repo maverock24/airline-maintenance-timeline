@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+coverage/
+logs/
+*.log
+.env*
+backend/swagger.json
+backend/airline.db
+frontend/build/
+frontend/public/

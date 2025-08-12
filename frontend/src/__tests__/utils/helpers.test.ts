@@ -69,7 +69,7 @@ describe('Helper Functions', () => {
     it('handles mixed case status strings correctly', () => {
       expect(getStatusSymbol('CoMpLeTeD')).toBe('✅');
       expect(getStatusColor('CoMpLeTeD')).toBe('#38a169');
-      
+
       expect(getStatusSymbol('iN pRoGrEsS')).toBe('🔧');
       expect(getStatusColor('iN pRoGrEsS')).toBe('#d69e2e');
     });

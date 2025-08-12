@@ -1,166 +1,166 @@
 .controls-layout {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr 1.5fr;
-    gap: 16px;
-    margin-bottom: 16px;
-    flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1.5fr;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .control-section {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--border-radius-large);
-    box-shadow: var(--shadow-light);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-large);
+  box-shadow: var(--shadow-light);
 }
 
 .control-section h3 {
-    margin: 0 0 8px 0;
-    font-size: 14px;
-    font-weight: 600;
-    border-bottom: 1px solid var(--border-primary);
-    padding-bottom: 8px;
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-primary);
+  padding-bottom: 8px;
 }
 
 .control-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .sub-control {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .sub-control label {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 .view-buttons,
 .nav-controls {
-    display: flex;
-    gap: 4px;
+  display: flex;
+  gap: 4px;
 }
 
 .view-btn,
 .nav-btn,
 .today-btn,
 #view-date {
-    padding: 8px 12px;
-    border: 1px solid var(--border-primary);
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border-radius: var(--border-radius);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 12px;
-    flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: var(--border-radius);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  flex: 1;
 }
 
 .view-btn:hover,
 .nav-btn:hover,
 .today-btn:hover {
-    background: var(--bg-tertiary);
+  background: var(--bg-tertiary);
 }
 
 .view-btn.active {
-    background: var(--accent-primary);
-    color: white;
-    border-color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
 }
 
 .today-btn {
-    color: var(--accent-primary);
-    font-weight: 600;
+  color: var(--accent-primary);
+  font-weight: 600;
 }
 
 #view-date {
-    flex: 2;
+  flex: 2;
 }
 
 .filter-tiles {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
 }
 
 .filter-tile {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-light);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-light);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
 }
 
 .filter-tile.inactive {
-    opacity: 0.5;
-    background: var(--bg-tertiary) !important;
-    color: var(--text-tertiary) !important;
+  opacity: 0.5;
+  background: var(--bg-tertiary) !important;
+  color: var(--text-tertiary) !important;
 }
 
 .filter-tile:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
 }
 
 .filter-tile.flight.active {
-    background: #718096;
-    color: white;
-    border-color: #718096;
+  background: #718096;
+  color: white;
+  border-color: #718096;
 }
 
 .tile-icon {
-    font-size: 14px;
+  font-size: 14px;
 }
 
 .tile-content {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .tile-title {
-    font-weight: 600;
-    font-size: 12px;
+  font-weight: 600;
+  font-size: 12px;
 }
 
 .tile-sub {
-    font-size: 10px;
-    opacity: 0.8;
+  font-size: 10px;
+  opacity: 0.8;
 }
 
 .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
-    gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 8px;
 }
 
 .stat-item {
-    text-align: center;
-    padding: 8px;
-    background: var(--bg-tertiary);
-    border-radius: var(--border-radius);
+  text-align: center;
+  padding: 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--border-radius);
 }
 
 .stat-number {
-    display: block;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--accent-primary);
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent-primary);
 }
 
 .stat-label {
-    font-size: 10px;
-    color: var(--text-secondary);
+  font-size: 10px;
+  color: var(--text-secondary);
 }

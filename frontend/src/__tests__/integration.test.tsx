@@ -6,7 +6,7 @@ import '@testing-library/jest-dom';
 global.fetch = jest.fn(() =>
   Promise.resolve({
     ok: true,
-    json: () => Promise.resolve([])
+    json: () => Promise.resolve([]),
   })
 ) as jest.Mock;
 
@@ -29,12 +29,12 @@ describe('Frontend Integration Tests', () => {
   it('can mock fetch calls', async () => {
     (fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => []
+      json: async () => [],
     });
-    
+
     const response = await fetch('/api/test');
     const data = await response.json();
-    
+
     expect(fetch).toHaveBeenCalledWith('/api/test');
     expect(data).toEqual([]);
   });

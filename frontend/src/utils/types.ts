@@ -39,7 +39,9 @@ export interface TimelineGroup {
 export interface TimelineControlsProps {
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   registrationDropdownOpen: boolean;
-  setRegistrationDropdownOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
+  setRegistrationDropdownOpen: (
+    value: boolean | ((prev: boolean) => boolean)
+  ) => void;
   getSelectedRegistrationsText: () => string;
   handleSelectAllRegistrations: () => void;
   filteredRegistrations: string[];
@@ -75,7 +77,11 @@ export interface SimpleTimelineProps {
   canResize?: boolean;
   canSelect?: boolean;
   stackItems?: boolean;
-  onItemSelect?: (itemId: string | number, e: React.SyntheticEvent, time: number) => void;
+  onItemSelect?: (
+    itemId: string | number,
+    e: React.SyntheticEvent,
+    time: number
+  ) => void;
   onItemDeselect?: () => void;
   onTimeChange?: (visibleTimeStart: number, visibleTimeEnd: number) => void;
   // New: selected item highlight

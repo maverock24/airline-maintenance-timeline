@@ -4,17 +4,17 @@ export const TIMELINE_CONFIG = {
   DEFAULT_SIDEBAR_WIDTH: 200,
   DEFAULT_LINE_HEIGHT: 70,
   DEFAULT_ITEM_HEIGHT_RATIO: 0.8,
-  
+
   // Layout and spacing
   HORIZONTAL_PADDING: 24,
   ITEM_LANE_SPACING: 4,
   MIN_SIDEBAR_WIDTH: 100,
   MOBILE_MAX_SIDEBAR_WIDTH: 180,
   DESKTOP_MAX_SIDEBAR_WIDTH: 340,
-  
+
   // Responsive breakpoints
   MOBILE_BREAKPOINT: 768,
-  
+
   // Interaction thresholds
   DRAG_DIRECTION_THRESHOLD: 5,
   MIN_ITEM_WIDTH_PERCENT: 0.5,
@@ -27,10 +27,10 @@ export const TIME_CONSTANTS = {
   HOUR_MS: 60 * 60 * 1000,
   DAY_MS: 24 * 60 * 60 * 1000,
   TWO_DAYS_MS: 2 * 24 * 60 * 60 * 1000,
-  
+
   // Minimum durations
   MIN_ZOOM_DURATION_MS: 60_000, // 1 minute
-  
+
   // Update intervals
   CLOCK_UPDATE_INTERVAL: 1000, // 1 second
 } as const;
@@ -40,15 +40,15 @@ export const INTERACTION_CONFIG = {
   // Timeouts and delays
   USER_INTERACTION_TIMEOUT: 2000, // 2 seconds
   SCROLL_COORDINATION_DELAY: 50, // 50ms
-  
+
   // Zoom factors
   ZOOM_IN_FACTOR: 0.8333,
   ZOOM_OUT_FACTOR: 1.2,
-  
+
   // Pan and scroll
   PAN_SHIFT_RATIO: 0.1,
   COMFORTABLE_VIEWING_PADDING_RATIO: 0.2, // 20% of container height
-  
+
   // Touch interaction
   MIN_PINCH_DISTANCE: 1,
   TOUCH_LOCK_THRESHOLD: 6,
@@ -73,7 +73,7 @@ export const GRID_CONFIG = {
   // Time marker steps
   HOURLY_STEP_MS: TIME_CONSTANTS.HOUR_MS,
   DAILY_STEP_MS: TIME_CONSTANTS.DAY_MS,
-  
+
   // Grid threshold (when to switch from hourly to daily markers)
   HOURLY_GRID_THRESHOLD: TIME_CONSTANTS.TWO_DAYS_MS,
 } as const;
@@ -111,7 +111,7 @@ export const DATE_FORMATS = {
 export const STATUS_CONFIG = {
   SYMBOLS: {
     COMPLETED: '✅',
-    IN_PROGRESS: '🔧', 
+    IN_PROGRESS: '🔧',
     OPEN: '📋',
     CANCELLED: '❌',
     DEFAULT: '📝',

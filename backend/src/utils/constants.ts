@@ -2,11 +2,11 @@
 export const SERVER_CONFIG = {
   // Default port
   DEFAULT_PORT: 3001,
-  
+
   // Request body limits
   JSON_LIMIT: '10mb',
   URL_ENCODED_LIMIT: '10mb',
-  
+
   // Environment values
   ENVIRONMENTS: {
     DEVELOPMENT: 'development',
@@ -33,7 +33,7 @@ export const API_ROUTES = {
   HEALTH: '/health',
   FLIGHTS: '/flights',
   WORK_PACKAGES: '/work-packages',
-  
+
   // Full paths
   FULL_PATHS: {
     HEALTH: '/api/health',
@@ -52,23 +52,23 @@ export const LOGGING_CONFIG = {
     HTTP: 'http',
     DEBUG: 'debug',
   },
-  
+
   // File rotation settings
   ROTATION: {
     MAX_SIZE: '20m',
     MAX_FILES: '30d',
     DATE_PATTERN: 'YYYY-MM-DD',
   },
-  
+
   // Performance thresholds
   PERFORMANCE: {
     SLOW_REQUEST_THRESHOLD: 1000, // 1 second in milliseconds
   },
-  
+
   // Console timestamp format
   CONSOLE_TIMESTAMP_FORMAT: 'HH:mm:ss',
-  
-  // File timestamp format  
+
+  // File timestamp format
   FILE_TIMESTAMP_FORMAT: 'YYYY-MM-DD HH:mm:ss',
 } as const;
 
@@ -76,10 +76,10 @@ export const LOGGING_CONFIG = {
 export const DATABASE_CONFIG = {
   // SQLite database file
   DATABASE_FILE: 'airline.db',
-  
+
   // Query timeouts (in milliseconds)
   QUERY_TIMEOUT: 30000, // 30 seconds
-  
+
   // Connection pool settings
   POOL: {
     MIN: 1,
@@ -106,7 +106,7 @@ export const REQUEST_CONFIG = {
   // Default query limits
   DEFAULT_LIMIT: 100,
   MAX_LIMIT: 1000,
-  
+
   // Query parameter names
   QUERY_PARAMS: {
     LIMIT: 'limit',
@@ -126,11 +126,11 @@ export const SWAGGER_CONFIG = {
     VERSION: '1.0.0',
     DESCRIPTION: 'API for managing airline maintenance timelines',
   },
-  
+
   // Paths
   DOCS_PATH: '/api-docs',
   JSON_PATH: '/api-docs.json',
-  
+
   // Server URLs
   SERVERS: {
     DEVELOPMENT: 'http://localhost:3001',
@@ -146,14 +146,14 @@ export const HEALTH_CONFIG = {
     DOWN: 'down',
     DEGRADED: 'degraded',
   },
-  
+
   // Component names
   COMPONENTS: {
     DATABASE: 'database',
     API: 'api',
     LOGGING: 'logging',
   },
-  
+
   // Health check timeouts
   TIMEOUTS: {
     DATABASE_CHECK: 5000, // 5 seconds
@@ -168,10 +168,10 @@ export const CORS_CONFIG = {
     DEVELOPMENT: ['http://localhost:3000', 'http://localhost:3001'],
     PRODUCTION: ['https://airline-maintenance.com'],
   },
-  
+
   // Allowed methods
   METHODS: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  
+
   // Allowed headers
   HEADERS: ['Content-Type', 'Authorization', 'X-Request-ID'],
 } as const;

@@ -1,9 +1,8 @@
-
 import { Request, Response } from 'express';
 import db from '../services/database';
-import { Flight, FlightQueryParams } from '../types/api';
+import { FlightQueryParams } from '../types/api';
 import { loggers } from '../utils/logger';
-import { HTTP_STATUS, ERROR_MESSAGES, REQUEST_CONFIG } from '../utils/constants';
+import { ERROR_MESSAGES, HTTP_STATUS } from '../utils/constants';
 
 interface DatabaseFlight {
   id: number;
@@ -16,26 +15,24 @@ interface DatabaseFlight {
 }
 
 export const getFlights = (req: Request, res: Response) => {
-  const startTime = Date.now();
-  
   try {
     // Validate query parameters if they exist
     const { registration, limit }: FlightQueryParams = req.query;
-    
+
     loggers.business.info('Get flights request', {
       requestId: req.requestId,
       filters: { registration, limit },
-      ip: req.ip
+      ip: req.ip,
     });
-    
+
     if (limit && (isNaN(Number(limit)) || Number(limit) < 0)) {
       loggers.business.warn('Invalid limit parameter', 'Bad Request', {
         requestId: req.requestId,
-        providedLimit: limit
+        providedLimit: limit,
       });
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: 'Bad Request',
-        message: 'Limit parameter must be a positive number'
+        message: 'Limit parameter must be a positive number',
       });
     }
 
@@ -43,11 +40,11 @@ export const getFlights = (req: Request, res: Response) => {
       loggers.business.warn('Invalid registration parameter', 'Bad Request', {
         requestId: req.requestId,
         providedRegistration: registration,
-        type: typeof registration
+        type: typeof registration,
       });
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: 'Bad Request',
-        message: 'Registration parameter must be a string'
+        message: 'Registration parameter must be a string',
       });
     }
 
@@ -63,7 +60,7 @@ export const getFlights = (req: Request, res: Response) => {
       FROM flights 
     `;
 
-    const params: any[] = [];
+    const params: (string | number)[] = [];
 
     if (registration) {
       query += ` WHERE registration = ?`;
@@ -79,10 +76,10 @@ export const getFlights = (req: Request, res: Response) => {
 
     db.all(query, params, (err, rows: DatabaseFlight[]) => {
       if (err) {
-        console.error('Database error in getFlights:', err);
-        res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ 
+        loggers.app.error(err, 'Database error in getFlights');
+        res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
           error: 'Database Error',
-          message: 'Failed to retrieve flights data'
+          message: 'Failed to retrieve flights data',
         });
         return;
       }
@@ -95,10 +92,10 @@ export const getFlights = (req: Request, res: Response) => {
       res.status(HTTP_STATUS.OK).json(rows);
     });
   } catch (error) {
-    console.error('Unexpected error in getFlights:', error);
+    loggers.app.error(error as Error, 'Unexpected error in getFlights');
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-      message: 'An unexpected error occurred while fetching flights'
+      message: 'An unexpected error occurred while fetching flights',
     });
   }
 };
