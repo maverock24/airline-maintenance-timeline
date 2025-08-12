@@ -10,7 +10,7 @@ import './SimpleTimeline.css';
 import TimelineGrid from './TimelineGrid';
 import TimelineHeader from './TimelineHeader';
 import TimelineHighlights from './TimelineHighlights';
-import TimelineItem from './TimelineItem';
+import TimelineRow from './TimelineRow';
 import TimelineSidebar from './TimelineSidebar';
 
 const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
@@ -190,49 +190,17 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
               const gi = (byGroup[group.id] || []) as PlacedItem[];
               const rowH = rowHeights[group.id] || lineHeight;
               return (
-                <div
+                <TimelineRow
                   key={group.id}
-                  className='st-row'
-                  data-group-id={group.id}
-                  style={{ height: rowH }}
-                >
-                  {gi.map((item) => {
-                    const left = timeToPercent(item.start_time);
-                    const right = timeToPercent(item.end_time);
-                    const width = Math.max(
-                      TIMELINE_CONFIG.MIN_ITEM_WIDTH_PERCENT,
-                      right - left
-                    );
-                    const top =
-                      TIMELINE_CONFIG.ITEM_LANE_SPACING +
-                      item.lane *
-                        (itemHeight + TIMELINE_CONFIG.ITEM_LANE_SPACING);
-                    const isSelected =
-                      selectedItemId !== undefined &&
-                      selectedItemId === item.id;
-                    const isFlightItem = item.id
-                      .toString()
-                      .startsWith('flight-');
-
-                    return (
-                      <TimelineItem
-                        key={item.id}
-                        id={item.id}
-                        title={item.title}
-                        left={left}
-                        width={width}
-                        height={itemHeight}
-                        top={top}
-                        isSelected={isSelected}
-                        isFlightItem={isFlightItem}
-                        itemProps={item.itemProps}
-                        canSelect={canSelect}
-                        onItemSelect={onItemSelect}
-                        startTime={item.start_time}
-                      />
-                    );
-                  })}
-                </div>
+                  group={group}
+                  items={gi}
+                  rowHeight={rowH}
+                  itemHeight={itemHeight}
+                  selectedItemId={selectedItemId}
+                  canSelect={canSelect}
+                  onItemSelect={onItemSelect}
+                  timeToPercent={timeToPercent}
+                />
               );
             })}
           </div>

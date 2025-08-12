@@ -56,10 +56,3 @@
   border-top: 1px solid var(--border-primary);
   transition: transform 0.2s ease-out;
 }
-
-.st-row {
-  position: relative;
-  border-bottom: 1px solid var(--border-primary);
-  box-sizing: border-box;
-  overflow: hidden;
-}
