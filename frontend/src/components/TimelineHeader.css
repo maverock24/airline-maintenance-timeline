@@ -1,58 +1,58 @@
 /* TimelineHeader component styles */
 
 .timeline-header {
-    position: sticky;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 99;
-    height: var(--st-tick-height, 32px);
-    line-height: var(--st-tick-height, 32px);
-    background: var(--bg-secondary);
-    border-top: 1px solid var(--border-primary);
-    border-bottom: 1px solid var(--border-primary);
-    transform: translateZ(0);
-    flex-shrink: 0;
-    box-sizing: border-box;
-    transition: transform 0.3s ease-out;
-    width: 100%;
-    margin-right: 0;
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  height: var(--st-tick-height, 32px);
+  line-height: var(--st-tick-height, 32px);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-primary);
+  border-bottom: 1px solid var(--border-primary);
+  transform: translateZ(0);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  transition: transform 0.3s ease-out;
+  width: 100%;
+  margin-right: 0;
 }
 
 .timeline-header::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(-1 * var(--tc-pad, 0px));
-    height: var(--tc-pad, 0px);
-    background: var(--bg-secondary);
-    border-top: 1px solid var(--border-primary);
-    pointer-events: none;
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--tc-pad, 0px));
+  height: var(--tc-pad, 0px);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-primary);
+  pointer-events: none;
 }
 
 .timeline-header-border {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    background: var(--border-primary);
-    z-index: 1;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-primary);
+  z-index: 1;
 }
 
 .timeline-header-tick {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transform: translateX(-50%);
-    z-index: 2;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(-50%);
+  z-index: 2;
 }
 
 .timeline-header-label {
-    font-size: 11px;
-    color: var(--text-secondary);
-    white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }

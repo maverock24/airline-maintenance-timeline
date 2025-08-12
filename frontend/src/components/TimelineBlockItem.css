@@ -1,31 +1,31 @@
 /* TimelineBlockItem component styles */
 
 .timeline-block-item {
-    border-radius: 4px;
-    overflow: hidden;
-    cursor: pointer;
-    padding: 6px 8px;
-    box-sizing: border-box;
-    transition:
-        box-shadow 0.2s ease,
-        transform 0.2s ease;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .timeline-block-item.selected {
-    box-shadow: 0 0 0 2px #e53e3e !important;
-    z-index: 10 !important;
+  box-shadow: 0 0 0 2px #e53e3e !important;
+  z-index: 10 !important;
 }
 
 .timeline-block-item.flight-item {
-    background: #718096;
-    color: white;
-    border: 1px solid #4a5568;
+  background: #718096;
+  color: white;
+  border: 1px solid #4a5568;
 }
 
 .timeline-block-item-title {
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.2;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
 }
