@@ -152,7 +152,6 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
         style={{ width: layout.computedSidebarWidth }}
       >
         <div className='st-sidebar-header'>Aircraft</div>
-        {/* remove spacer; one sticky row across both panes */}
         <div
           className='st-sidebar-rows'
           ref={sidebarRowsRef}
