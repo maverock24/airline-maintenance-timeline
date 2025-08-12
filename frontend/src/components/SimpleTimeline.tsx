@@ -9,6 +9,7 @@ import { SimpleTimelineItem, SimpleTimelineProps } from '../utils/types';
 import './SimpleTimeline.css';
 import TimelineGrid from './TimelineGrid';
 import TimelineHeader from './TimelineHeader';
+import TimelineHighlights from './TimelineHighlights';
 import TimelineItem from './TimelineItem';
 import TimelineSidebar from './TimelineSidebar';
 
@@ -178,26 +179,11 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({
           ref={scrollRef}
           onScroll={scrolling.handleContentScroll}
         >
-          <div
-            className='st-highlights'
-            style={{
-              height: totalHeight + 'px',
-            }}
-          >
-            {highlightRanges.map((hr, idx) => {
-              const l = timeToPercent(moment(hr.start));
-              const r = timeToPercent(moment(hr.end));
-              const w = Math.max(0, r - l);
-              if (w <= 0) return null;
-              return (
-                <div
-                  key={`${hr.start}-${hr.end}-${idx}`}
-                  className={`st-highlight-range ${hr.className || ''}`}
-                  style={{ left: `${l}%`, width: `${w}%` }}
-                />
-              );
-            })}
-          </div>
+          <TimelineHighlights
+            highlightRanges={highlightRanges}
+            totalHeight={totalHeight}
+            timeToPercent={timeToPercent}
+          />
           <TimelineGrid timeMarkers={timeMarkers} totalHeight={totalHeight} />
           <div className='st-rows'>
             {groups.map((group) => {
