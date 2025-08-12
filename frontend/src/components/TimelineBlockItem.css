@@ -1,6 +1,6 @@
-/* TimelineItem component styles */
+/* TimelineBlockItem component styles */
 
-.timeline-item {
+.timeline-block-item {
     border-radius: 4px;
     overflow: hidden;
     cursor: pointer;
@@ -11,18 +11,18 @@
         transform 0.2s ease;
 }
 
-.timeline-item.selected {
+.timeline-block-item.selected {
     box-shadow: 0 0 0 2px #e53e3e !important;
     z-index: 10 !important;
 }
 
-.timeline-item.flight-item {
+.timeline-block-item.flight-item {
     background: #718096;
     color: white;
     border: 1px solid #4a5568;
 }
 
-.timeline-item-title {
+.timeline-block-item-title {
     font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
